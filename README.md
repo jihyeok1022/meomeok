@@ -38,7 +38,7 @@ name4 — 백엔드: 인기 글·평균 평점 조회 + PPT 제작·발표
 로그인 성공 시 사용자 정보는 아래 형식으로 통일합니다.
 
 ```python
-{"user_id": 1, "nickname": "지혁"}
+{"user_id": 1, "nickname": "철수"}
 ```
 
 - 로그인 정보는 `st.session_state["user"]`에 저장합니다.
