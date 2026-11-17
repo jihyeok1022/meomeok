@@ -1,5 +1,6 @@
-"""머먹 홈 — Figma 2:40 기반. 실행: python -m streamlit run 1_feed_figma.py
-assets/ 폴더를 이 파일과 함께 두세요. DB 연결 전 예시 화면입니다.
+"""머먹 홈. 실행: python -m streamlit run 1_feed_figma.py
+assets/ 폴더를 이 파일과 함께 두고 실행. 
+완료 X 백엔드와 DB 연결 필요.
 """
 import base64
 from datetime import datetime, timedelta
@@ -7,7 +8,7 @@ from html import escape
 from pathlib import Path
 import streamlit as st
 
-st.set_page_config(page_title="머먹 · 모집 글", page_icon="🍚", layout="centered")
+st.set_page_config(page_title="머먹 · 모집 글", page_icon="여기에 아이콘", layout="centered")
 ROOT = Path(__file__).resolve().parent
 
 @st.cache_data
@@ -18,8 +19,8 @@ def icon(name):
     return f'<img src="{asset(name)}" alt="" aria-hidden="true">'
 
 def load_posts():
-    """백엔드 연동 지점. place/budget은 DB에 없는 시안용 정보입니다.
-    분식도 현재 DB 허용값에 없으므로 연동 전 팀과 분류를 맞춰야 합니다.
+    """백엔드 연동 지점. place/budget은 DB에 없는 시안용 정보.
+    분식도 현재 DB 허용값에 없으므로 연동 전 팀과 분류를 맞춰야 함.
     """
     today = datetime.now().replace(second=0, microsecond=0)
     rows = [
@@ -238,7 +239,7 @@ for post in filtered:
 st.markdown('<div class="demo-note">예시 데이터로 만든 화면입니다.</div>', unsafe_allow_html=True)
 with st.container(key="fab"):
     if st.button("글쓰기", key="write_post", help="모집 글 작성"):
-        navigate("2_write_post.py", "글쓰기 화면은 다음 단계에서 연결할 예정이에요.")
+        navigate("2_write_post.py", "구현 예정")
 with st.container(key="bottom_nav"):
     home, apply, chat, profile = st.columns(4)
     with home, st.container(key="nav_home"):
@@ -246,10 +247,10 @@ with st.container(key="bottom_nav"):
             st.rerun()
     with apply, st.container(key="nav_apply"):
         if st.button("내 신청", key="bottom_apply"):
-            navigate("5_participation.py", "내 신청 화면은 담당자가 구현한 뒤 연결할 예정이에요.")
+            navigate("5_participation.py", "구현 예정")
     with chat, st.container(key="nav_chat"):
         if st.button("톡방", key="bottom_chat"):
-            navigate("6_chat.py", "톡방 화면은 담당자가 구현한 뒤 연결할 예정이에요.")
+            navigate("6_chat.py", "구현 예정")
     with profile, st.container(key="nav_profile"):
         if st.button("내 프로필", key="bottom_profile"):
-            navigate("4_profile.py", "프로필 화면은 담당자가 구현한 뒤 연결할 예정이에요.")
+            navigate("4_profile.py", "구현 예정")
