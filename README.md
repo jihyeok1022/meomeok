@@ -56,3 +56,19 @@ name4 — 백엔드: 인기 글·평균 평점 조회 + PPT 제작·발표
 - 함수 이름이나 반환 형식을 바꾸면 사용하는 담당자에게 먼저 공유합니다.
 
 ※ 참여 서비스 파일 위치는 `services/participation_service.py`로 통일합니다.
+
+## Frontend execution
+
+From the repository root:
+
+```powershell
+python -m pip install -r requirements.txt
+python -m streamlit run app.py
+```
+
+The entry point is `app.py`. Screens live in `pages/`; do not run page files directly.
+Shared styling and SVG loading live in `ui_common.py` and `assets/`.
+`demo_data.py` holds temporary session data until the backend services are implemented.
+Feed/detail interactions currently affect only the current session. Writing a post
+supports validation and preview; it does not insert rows into the database.
+Authentication and the profile/participation/chat pages remain with their assigned owners.
