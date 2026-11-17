@@ -3,16 +3,16 @@
 
 1번 2번 3번 순차적으로 실행
 
-name1 — 백엔드: DB 연결·로그인·프로필·리뷰
+서관우 — 백엔드: DB 연결·로그인·프로필·리뷰
 파일: db.py, auth.py, services/user_service.py, services/review_service.py, requirements.txt, .gitignore, .streamlit/secrets.toml.example, README.md
 
-name2 — 백엔드: 게시물·댓글·좋아요·팔로우
+이서준 — 백엔드: 게시물·댓글·좋아요·팔로우
 파일: services/post_service.py, services/social_service.py
 
-name3 — 백엔드: 참여 신청·승인·마감·톡방·메시지
+박준혁 — 백엔드: 참여 신청·승인·마감·톡방·메시지
 파일: services/participation_service.py, services/chat_service.py
 
-name4 — 백엔드: 인기 글·평균 평점 조회 + PPT 제작·발표
+황윤탁 — 백엔드: 인기 글·평균 평점 조회 + PPT 제작·발표
 파일: services/stats_service.py, docs/발표자료.pptx
 
 차지혁 — 프론트: 로그인·게시물·댓글·좋아요·팔로우 화면
@@ -56,3 +56,25 @@ name4 — 백엔드: 인기 글·평균 평점 조회 + PPT 제작·발표
 - 함수 이름이나 반환 형식을 바꾸면 사용하는 담당자에게 먼저 공유합니다.
 
 ※ 참여 서비스 파일 위치는 `services/participation_service.py`로 통일합니다.
+
+## 프론트엔드 실행 방법
+
+프로젝트의 `meomeok` 폴더에서 다음 명령어를 실행합니다.
+
+```powershell
+python -m pip install -r requirements.txt
+python -m streamlit run app.py
+```
+
+- 앱은 `app.py`로 실행합니다. `pages/` 안의 화면 파일은 개별 실행하지 않습니다.
+- 공통 화면 스타일과 아이콘 로딩은 `ui_common.py`, 아이콘 파일은 `assets/`에서 관리합니다.
+- 백엔드 연결 전까지 `demo_data.py`의 예시 데이터를 사용합니다.
+- 피드·상세 화면의 댓글·좋아요·팔로우·참여 신청은 현재 세션에만 반영됩니다.
+- 글쓰기 화면은 입력 검사와 미리보기까지 지원하며, 실제 DB에 글을 저장하지 않습니다.
+- 실제 인증과 프로필·참여 관리·채팅 기능은 각 담당자의 구현과 연결이 필요합니다.
+
+## API 명세서
+
+[프론트엔드 연동 API 명세서](README_API.md)
+
+화면에서 사용하는 데이터 형식, 서비스 함수의 입력·반환값, 검증 규칙과 담당자를 정리했습니다. 아직 합의되지 않은 서비스 함수는 연동 제안으로 표시했습니다.
