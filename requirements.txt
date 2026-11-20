@@ -1,2 +1,4 @@
 streamlit>=1.56,<2
-mysql-connector-python
+pymysql>=1.1
+cryptography>=41
+bcrypt>=4.1
