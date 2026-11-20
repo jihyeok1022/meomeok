@@ -1,6 +1,18 @@
+# DB 비밀번호가 들어 있으므로 절대 올리지 않는다
+.streamlit/secrets.toml
+.env
+
+# Python
 __pycache__/
 *.pyc
 .venv/
 venv/
-.streamlit/secrets.toml
-.env
+
+# OS / 에디터
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# 내 PC 전용 DB 계정 (비밀번호 포함)
+06_local_app_user.sql
