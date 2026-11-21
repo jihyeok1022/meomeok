@@ -1,6 +1,5 @@
 """
 services/social_service.py - 댓글, 좋아요, 팔로우
-
 소셜 규칙
 - 댓글은 작성 시각 오름차순(created_at ASC, comment_id ASC)으로 조회한다.
 - 좋아요와 팔로우는 토글이 아니라 목표 상태(liked / following: bool)를 받아 멱등하게 처리한다.
