@@ -1,6 +1,5 @@
 """
 services/post_service.py - 모집 글 목록·상세 조회와 등록
-
 게시물 규칙
 - 피드(list_posts)는 항상 모집 중(OPEN)과 모집 마감(CLOSED) 글만 반환한다.
 - 완료(COMPLETED)·취소(CANCELED) 글은 피드 검색에서도 노출하지 않는다.
