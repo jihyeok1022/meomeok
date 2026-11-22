@@ -169,6 +169,14 @@ html,body,[data-testid="stApp"],[data-testid="stAppViewContainer"]{
 [data-testid="stDialog"] button:disabled{background:#f7f6f4!important;border-color:#ececec!important;}
 [data-testid="stDialog"] button:disabled p{color:#a0a0a0!important;}
 @media(max-width:390px){.st-key-fab{left:auto;right:20px;}}
+.st-key-feed_account{padding:0 20px 16px;text-align:right;}
+.st-key-feed_account button{border:0;background:transparent!important;color:#777!important;
+ min-height:32px;padding:4px 0;box-shadow:none;}
+.st-key-feed_account button p{font-size:12px;}
+.st-key-feed_pagination{padding:16px 20px;}
+.st-key-feed_pagination [data-testid="stHorizontalBlock"]{flex-wrap:nowrap;align-items:center;}
+.st-key-feed_pagination [data-testid="stColumn"]{min-width:0!important;}
+.st-key-feed_pagination button{background:white!important;color:#555!important;border-color:#ddd;}
 @media(max-width:350px){.intro{font-size:17px;letter-spacing:-.8px;}.host{font-size:11px;}.stats{gap:6px;}}
 """
 
