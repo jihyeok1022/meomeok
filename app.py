@@ -35,6 +35,14 @@ LOGIN_CSS = """
 .st-key-login_shell [data-baseweb="input"]{min-height:50px;border:1px solid #e4e2df;
  border-radius:12px;background:#fff!important;box-shadow:none;}
 .st-key-login_shell [data-baseweb="input"]:focus-within{border-color:#ff7a3d;box-shadow:0 0 0 3px #fff1e9;}
+
+/* Base Web paints the inner input wrapper independently of its outer border. */
+.st-key-login_shell [data-baseweb="base-input"]{
+ background:#fff!important;color:#1f1f1f!important;}
+.st-key-login_shell input:-webkit-autofill{
+ -webkit-box-shadow:0 0 0 1000px #fff inset!important;
+ -webkit-text-fill-color:#1f1f1f!important;caret-color:#1f1f1f;}
+
 .st-key-login_shell input{background:transparent!important;color:#1f1f1f!important;
  -webkit-text-fill-color:#1f1f1f!important;font-size:14px;padding:13px 14px;}
 .st-key-login_shell input::placeholder{color:#aaa!important;-webkit-text-fill-color:#aaa!important;}
