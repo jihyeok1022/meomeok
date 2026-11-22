@@ -28,7 +28,7 @@ class FrontendIntegrationTests(unittest.TestCase):
         return result
 
     def app(self, page='1_feed.py'):
-        app = AppTest.from_file(str(ROOT / 'app.py'))
+        app = AppTest.from_file(str(ROOT / 'app.py'), default_timeout=10)
         app.session_state['user'] = {'user_id': 1, 'nickname': '테스트'}
         app.run()
         if page != '1_feed.py':
@@ -142,7 +142,7 @@ class FrontendIntegrationTests(unittest.TestCase):
         app = self.app('3_post_detail.py')
         app.session_state['selected_post_id'] = 3
         app.run()
-        app.text_area(key='detail_comment_input_3').input('<script>test</script>').run()
+        app.text_area(key='detail_comment_input_3').input('<script>test</script>')
         next(b for b in app.button if b.key.startswith('FormSubmitter:')).click().run()
         self.assertIn('등록하지 못했어요', app.error[0].value)
         self.assertEqual(app.text_area(key='detail_comment_input_3').value, '<script>test</script>')

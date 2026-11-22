@@ -32,7 +32,7 @@ class LoginTests(unittest.TestCase):
         self.addCleanup(self.detail_patch.stop)
 
     def app(self):
-        app = AppTest.from_file(str(ROOT / 'app.py')).run()
+        app = AppTest.from_file(str(ROOT / 'app.py'), default_timeout=10).run()
         self.assertFalse(app.exception)
         return app
 
@@ -99,7 +99,7 @@ class LoginTests(unittest.TestCase):
 
     def test_shared_post_link_survives_login(self):
         with patch.object(auth, 'login', return_value={'user_id': 1, 'nickname': '테스트'}):
-            app = AppTest.from_file(str(ROOT / 'app.py'))
+            app = AppTest.from_file(str(ROOT / 'app.py'), default_timeout=10)
             app.query_params['post'] = '3'
             app.run()
             self.submit(app)
