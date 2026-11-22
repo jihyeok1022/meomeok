@@ -4,6 +4,9 @@ from datetime import datetime
 from pathlib import Path
 
 import streamlit as st
+import pymysql
+import auth
+from services import post_service
 
 from ui_common import CSS, FOOD_CATEGORIES, REGIONS, STATUS_LABELS, FEED_STATUSES, asset, icon, e
 
@@ -15,10 +18,13 @@ from ui_common import CSS, FOOD_CATEGORIES, REGIONS, STATUS_LABELS, FEED_STATUSE
 
 
 
-def load_posts():
-    """서비스 연결 전까지 상세 화면과 같은 예시 데이터를 사용한다."""
-    from demo_data import get_posts
-    return get_posts()
+PAGE_SIZE = 20
+
+
+def load_posts(**filters):
+    """Request one extra row to decide whether there is another page."""
+    return post_service.list_posts(**filters, limit=PAGE_SIZE + 1,
+                                   offset=st.session_state.get('db_feed_page', 0) * PAGE_SIZE)
 
 
 def time_label(value):
@@ -55,16 +61,23 @@ def open_detail(post_id):
     st.switch_page('pages/3_post_detail.py', query_params={'post': post_id})
 
 
+def sign_out():
+    import auth
+    auth.logout()
+    # Clear per-user drafts and temporary interactions before another account logs in.
+    st.session_state.clear()
+    st.query_params.clear()
+    st.switch_page('pages/1_feed.py')
+
+
 def main():
     st.set_page_config(page_title='머먹 · 모집 글', page_icon='🍚', layout='centered')
+    user = auth.require_login()
     if 'post' in st.query_params:
         st.switch_page('pages/3_post_detail.py',
                        query_params={'post': st.query_params['post']})
     st.markdown(f'<style>{CSS}</style>', unsafe_allow_html=True)
-    posts = [post for post in load_posts() if post['status'] in FEED_STATUSES]
-    user = st.session_state.get('user') or {}
     nickname = f"{e(user['nickname'])}님, " if user.get('nickname') else ''
-    open_count = sum(p['status'] == 'OPEN' for p in posts)
     st.session_state.setdefault('db_feed_show_search', False)
     st.session_state.setdefault('db_feed_sort', '최신순')
     st.markdown('<div class="status-bar" aria-hidden="true"><strong>9:41</strong><span>LTE 100%</span></div>', unsafe_allow_html=True)
@@ -79,7 +92,7 @@ def main():
             if st.button('알림', key='bell_button'):
                 notice('알림 기능은 아직 연결되지 않았어요.')
     st.markdown(f'<div class="intro-block"><div class="intro">{nickname}오늘 누구랑 밥 먹을까요?</div>'
-                f'<div class="sub">가천대 근처에서 모집 중인 밥 모임 {open_count}개</div></div>', unsafe_allow_html=True)
+                '<div class="sub">가천대 근처에서 함께할 밥 모임을 찾아보세요</div></div>', unsafe_allow_html=True)
     with st.container(key='categories'):
         category = st.pills('음식 종류', ['전체', *FOOD_CATEGORIES], default='전체',
                             key='db_feed_category', label_visibility='collapsed') or '전체'
@@ -99,16 +112,31 @@ def main():
                 st.session_state.db_feed_sort = '식사 시간순' if st.session_state.db_feed_sort == '최신순' else '최신순'
                 st.rerun()
     sort = st.session_state.db_feed_sort
-    query = st.session_state.get('db_feed_query', '').strip().casefold()
+    query = st.session_state.get('db_feed_query', '').strip()
     region = st.session_state.get('db_feed_region', '전체')
     status = st.session_state.get('db_feed_status', '전체')
-    filtered = [p for p in posts
-                if (category == '전체' or p['food_category'] == category)
-                and (region == '전체' or p['region'] == region)
-                and (status == '전체' or p['status'] == status)
-                and (not query or query in (p['title'] + ' ' + p['body']).casefold())]
-    filtered.sort(key=lambda p: p['created_at'] if sort == '최신순' else p['meal_time'], reverse=sort == '최신순')
-    if not filtered:
+    filters = dict(region=None if region == '전체' else region,
+                   food_category=None if category == '전체' else category,
+                   status=None if status == '전체' else status, keyword=query,
+                   sort='latest' if sort == '최신순' else 'meal_time')
+    fingerprint = tuple(filters.items())
+    if st.session_state.get('_feed_filters') != fingerprint:
+        st.session_state['db_feed_page'] = 0
+        st.session_state['_feed_filters'] = fingerprint
+    failed = False
+    try:
+        posts = [p for p in load_posts(**filters) if p['status'] in FEED_STATUSES]
+    except (pymysql.MySQLError, OSError):
+        posts, failed = [], True
+        st.error('모임을 불러오지 못했어요. DB 연결을 확인한 후 다시 시도해 주세요.')
+        if st.button('다시 불러오기', key='feed_retry'):
+            st.rerun()
+    except ValueError as exc:
+        posts, failed = [], True
+        st.error(str(exc))
+    has_next = len(posts) > PAGE_SIZE
+    filtered = posts[:PAGE_SIZE]
+    if not filtered and not failed:
         st.markdown('<div class="empty">조건에 맞는 모임이 없어요.<br>검색 조건을 바꿔보세요.</div>', unsafe_allow_html=True)
     styles = {'OPEN': '', 'CLOSED': 'closed', 'COMPLETED': 'completed', 'CANCELED': 'canceled'}
     for post in filtered:
@@ -129,7 +157,23 @@ def main():
             st.markdown(card, unsafe_allow_html=True)
             if st.button(f'{post["title"]} 상세 보기', key=f'db_open_{post["post_id"]}'):
                 open_detail(post['post_id'])
-    st.markdown('<div class="demo-note">예시 데이터로 만든 화면입니다.</div>', unsafe_allow_html=True)
+    if not failed and (st.session_state.get('db_feed_page', 0) or has_next):
+        with st.container(key='feed_pagination'):
+            previous, counter, following = st.columns([1, 1, 1])
+            page_number = st.session_state.get('db_feed_page', 0)
+            with previous:
+                if st.button('이전', key='feed_previous', disabled=page_number == 0):
+                    st.session_state['db_feed_page'] = page_number - 1
+                    st.rerun()
+            with counter:
+                st.caption(f'{page_number + 1}페이지')
+            with following:
+                if st.button('다음', key='feed_next', disabled=not has_next):
+                    st.session_state['db_feed_page'] = page_number + 1
+                    st.rerun()
+    with st.container(key='feed_account'):
+        if st.button('로그아웃', key='feed_logout'):
+            sign_out()
     with st.container(key='fab'):
         if st.button('글쓰기', key='db_write_post'):
             navigate('2_write_post.py')

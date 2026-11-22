@@ -1,10 +1,13 @@
 """Write post page. Run the application with: streamlit run app.py.
 
-Preview and input validation only; persistence awaits the backend service.
+Input validation, preview and persistence through post_service.
 """
 from datetime import datetime, timedelta
 
 import streamlit as st
+import pymysql
+import auth
+from services import post_service
 
 # 피드와 같은 DB 선택값 및 공통 스타일을 사용한다.
 import ui_common as ui
@@ -56,15 +59,52 @@ def remember_draft():
     return draft
 
 
-@st.dialog('작성한 모집 글')
+def close_preview():
+    st.session_state.pop('_write_preview_payload', None)
+    st.session_state.pop('_write_publish_error', None)
+
+
+def finish_publish():
+    if (post_id := st.session_state.pop('_write_saved_id', None)) is not None:
+        st.switch_page('pages/3_post_detail.py', query_params={'post': post_id})
+
+
+def publish_post(payload):
+    """Called before the next page/fragment render; never store a fake post."""
+    user = auth.require_login()
+    st.session_state.pop('_write_publish_error', None)
+    errors = validate_post(payload)
+    if errors:
+        st.session_state['_write_publish_error'] = '\n'.join(errors)
+        return
+    try:
+        post_id = post_service.create_post(user['user_id'], payload)
+    except (ValueError, LookupError, PermissionError) as exc:
+        st.session_state['_write_publish_error'] = str(exc)
+    except (pymysql.MySQLError, OSError):
+        st.session_state['_write_publish_error'] = '글을 등록하지 못했어요. DB 연결을 확인한 후 다시 시도해 주세요.'
+    else:
+        close_preview()
+        st.session_state['_write_reset'] = True
+        st.session_state['_write_saved_id'] = post_id
+        st.session_state['selected_post_id'] = post_id
+        st.session_state['detail_scroll_to_top'] = True
+        st.session_state['_post_created'] = True
+
+
+@st.dialog('작성한 모집 글', on_dismiss=close_preview)
 def show_preview(payload):
+    finish_publish()
     st.subheader(payload['title'])
     st.write(payload['body'])
     st.write(f"지역: {payload['region']} · 음식 종류: {payload['food_category']}")
     st.write(f"식사 시간: {payload['meal_time']:%Y-%m-%d %H:%M}")
     st.write(f"정원: {payload['capacity']}명 (작성자 포함)")
     st.info('미리보기입니다. 아직 게시되지 않았어요.')
-    st.button('모집 글 등록 · 준비 중', disabled=True, use_container_width=True)
+    if error := st.session_state.get('_write_publish_error'):
+        st.error(error)
+    st.button('이대로 모집 글 등록', key='write_publish', use_container_width=True,
+              on_click=publish_post, args=(payload,))
 
 
 WRITE_CSS = """
@@ -137,6 +177,12 @@ WRITE_CSS = """
 
 
 def render_write_page():
+    auth.require_login()
+    finish_publish()
+    if st.session_state.pop('_write_reset', False):
+        st.session_state.pop('write_draft', None)
+        for field in ('title', 'body', 'capacity', 'meal_time', 'region', 'food_category'):
+            st.session_state.pop(f'write_{field}', None)
     css = ui.CSS + WRITE_CSS
     css += f'.st-key-write_header button{{background-image:url("{ui.asset("write_back")}");}}'
     for position, name in (('first', 'write_minus'), ('last', 'write_plus')):
@@ -191,7 +237,7 @@ def render_write_page():
             errors_slot = st.empty()
     payload = build_payload(remember_draft())
     with st.container(key='write_submit'):
-        st.markdown('<div class="write-submit-hint">작성한 내용을 확인해 보세요 · 아직 게시되지 않아요</div>', unsafe_allow_html=True)
+        st.markdown('<div class="write-submit-hint">미리보기에서 확인한 후 모집 글을 등록할 수 있어요</div>', unsafe_allow_html=True)
         if st.button('모집 글 미리보기', key='write_preview', use_container_width=True):
             errors = validate_post(payload)
             if errors:
@@ -199,7 +245,10 @@ def render_write_page():
                     for message in errors:
                         st.error(message)
             else:
-                show_preview(payload)
+                st.session_state['_write_preview_payload'] = payload
+                st.session_state.pop('_write_publish_error', None)
+    if snapshot := st.session_state.get('_write_preview_payload'):
+        show_preview(snapshot)
 
 
 def main():
