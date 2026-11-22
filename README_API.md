@@ -4,9 +4,11 @@
 
 ## 1. 문서 상태와 공통 규칙
 
-현재 화면은 `demo_data.py`의 예시 데이터를 사용하며 실제 DB 서비스와 연결하기 전입니다.
+현재 로그인·피드·글 등록·상세·댓글·좋아요·팔로우 화면은 실제 서비스 호출로 연결했습니다.
+`demo_data.py`는 현재 화면에서 사용하지 않습니다. 참여 서비스가 비어 있는 동안 신청은 비활성화합니다.
+DB 장애가 발생하면 오류를 안내하며 예시 데이터로 대체하지 않습니다.
 Streamlit에서 Python 서비스 함수를 직접 호출하는 구조로, 별도 HTTP 서버를 전제하지 않습니다.
-인증 함수는 기존 README 계약을 따릅니다. 그 밖의 함수명·입력·반환값은 담당자와 합의할 **연동 제안**이며 구현 완료를 의미하지 않습니다.
+인증 함수는 기존 README 계약을 따릅니다. 게시물·댓글·좋아요·팔로우는 현재 서비스 구현을 사용합니다. 참여 관련 함수명·입력·반환값은 담당자와 합의할 **연동 제안**이며 구현 완료를 의미하지 않습니다.
 
 | 항목 | 규칙 |
 |---|---|
@@ -97,14 +99,14 @@ post = {
 여러 1:N 테이블을 동시에 JOIN해 개수가 곱해지지 않도록 각각 집계한 뒤 결합합니다.
 평점은 Review.reviewee_id = Post.user_id 기준입니다. MySQL의 Decimal 평균값은 float로 변환하고 표시 반올림은 화면에서 처리합니다.
 
-상세 조회에는 현재 로그인 사용자별 표시값을 추가하는 방안을 제안합니다.
+상세 조회는 현재 로그인 사용자별 표시값을 포함합니다.
 
 ```python
 # 기본 PostView에 추가
 {"is_liked": False, "is_following_author": False}
 ```
 
-두 값은 bool이며 비로그인 조회에서는 False입니다. 현재 예시의 세션 집합 직접 조회를 이 필드 사용으로 변경해야 합니다.
+두 값은 bool이며 비로그인 조회에서는 False입니다. 화면은 세션 집합 대신 이 필드를 사용합니다.
 
 ### 3.3 글쓰기 입력 — PostCreate
 
@@ -246,7 +248,7 @@ create_post(user_id: int, payload: dict) -> int
 - 초기 상태 OPEN, 확정 인원은 작성자 1명이며 작성자의 Participation 행은 만들지 않습니다.
 - 입력 오류는 ValueError, 사용자 없음은 LookupError입니다.
 - 성공 후 생성된 글의 상세 화면으로 이동합니다.
-- 현재 글쓰기는 미리보기까지 구현되어 있어 실제 등록 연결이 필요합니다.
+- 글쓰기는 미리보기 후 확인 버튼으로 실제 등록하며 성공 시 상세 화면으로 이동합니다.
 
 ## 7. 댓글·좋아요·팔로우 — 2번 담당
 
@@ -283,7 +285,7 @@ set_like(post_id: int, user_id: int, liked: bool) -> dict
 - 이미 원하는 상태이면 그대로 성공합니다. 같은 요청을 반복해도 반대 상태로 바뀌지 않습니다.
 - (user_id, post_id) 복합키로 중복을 방지합니다.
 - 대상 없음은 LookupError, 반환 개수는 DB 처리 결과 기준입니다.
-- 예시 toggle_like() 대신 목표 상태를 전달하는 계약을 제안합니다.
+- 화면은 예시 toggle_like() 대신 목표 상태를 전달하는 set_like()를 사용합니다.
 
 ### 7.4 팔로우 설정·해제
 
@@ -372,14 +374,14 @@ get_user_average_rating(user_id: int) -> float | None
 - 피드에서는 사용자마다 반복 호출하기보다 게시물 조회에 작성자별 평균을 결합하는 방안을 권장합니다.
 - 인기 글 조회는 현재 5번 화면에 연결되지 않아 이 문서에서 제외합니다.
 
-## 10. 예시 코드 → 서비스 연결표
+## 10. 기존 예시 코드 → 서비스 연결표
 
 | 현재 호출·상태 | 연결할 제안 API |
 |---|---|
 | demo_data.current_user() | auth.get_current_user() 또는 require_login() |
 | demo_data.get_posts() | post_service.list_posts(...) |
 | demo_data.get_post(...) | post_service.get_post(..., viewer_id) |
-| 글쓰기 미리보기 | post_service.create_post(...) 등록 연결 추가 |
+| 글쓰기 미리보기 | post_service.create_post(...) 실제 등록 연결 완료 |
 | demo_data.get_comments(...) | social_service.list_comments(...) |
 | demo_data.add_comment(post_id, user, content) | social_service.create_comment(post_id, user_id, content) |
 | demo_data.toggle_like(...) | social_service.set_like(..., liked) |
@@ -390,7 +392,7 @@ get_user_average_rating(user_id: int) -> float | None
 | demo_data.cancel_application(...) | participation_service.cancel_application(...) |
 | 세션 likes·follows 집합 직접 조회 | PostView.is_liked·is_following_author |
 
-인자·반환값이 다르므로 import만 바꾸지 않고 호출부도 변경합니다.
+인자·반환값에 맞춰 게시물·댓글·좋아요·팔로우 호출부를 변경했습니다. 참여 행은 향후 연결 계약이며 현재 신청 버튼은 비활성화합니다.
 처리 성공 후 관련 데이터를 다시 조회하며 실패 시 성공 표시나 수치를 먼저 변경하지 않습니다.
 
 ## 11. 연동 확인 기준
@@ -405,3 +407,7 @@ get_user_average_rating(user_id: int) -> float | None
 - [ ] 신청만으로 확정 인원이 늘지 않음
 - [ ] 새 브라우저 세션에서도 DB 저장 결과 조회
 - [ ] 권한 없는 작업을 백엔드에서도 차단
+
+## 12. 현재 검증 범위
+
+`python -m unittest discover -s tests -v`로 서비스 응답을 대체한 UI 연동 테스트를 실행합니다. 실제 MySQL 연결·저장 검증과 브라우저 화면 검수는 별도로 필요합니다.

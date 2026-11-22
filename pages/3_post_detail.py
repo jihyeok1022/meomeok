@@ -1,14 +1,15 @@
 """머먹 게시물 상세 화면. 실행은 1_feed.py에서 카드를 선택한다.
 
-DB 연결 전 UI 체험용이다. 모든 변경은 demo_data의 브라우저 세션에만 남는다.
-실제 서비스 연결 시 조회·댓글·좋아요·팔로우는 2번 담당자,
-신청·취소는 3번 담당자 함수를 호출하고 권한을 백엔드에서 재검사한다.
+게시물·댓글·좋아요·팔로우는 실제 서비스를 호출한다.
+참여 기능은 3번 담당자의 서비스가 준비되었을 때 연결한다.
 """
 from urllib.parse import urlsplit, urlunsplit, urlencode
 
 import streamlit as st
+import pymysql
+import auth
 
-import demo_data as data
+from services import post_service, social_service, participation_service
 import ui_common as ui
 
 
@@ -37,7 +38,7 @@ def share_post(post_id):
         parts = urlsplit(url)
         st.code(urlunsplit((parts.scheme, parts.netloc, parts.path,
                            urlencode({'post': post_id}), '')), language=None)
-        st.caption('복사 버튼을 눌러 링크를 복사하세요. 예시 게시물 링크입니다.')
+        st.caption('복사 버튼을 눌러 게시물 링크를 복사하세요. 로그인 후 같은 글을 볼 수 있어요.')
     else:
         st.info('앱 주소를 확인한 뒤 공유할 수 있어요.')
 
@@ -126,13 +127,31 @@ def go_back():
     st.switch_page('pages/1_feed.py')
 
 
+def perform_action(function, *args):
+    """Callbacks finish before the page re-queries the latest counts and states."""
+    st.session_state.pop('_detail_action_error', None)
+    try:
+        function(*args)
+    except (ValueError, LookupError, PermissionError) as exc:
+        st.session_state['_detail_action_error'] = str(exc)
+    except (pymysql.MySQLError, OSError):
+        st.session_state['_detail_action_error'] = '변경 내용을 저장하지 못했어요. 연결을 확인하고 다시 시도해 주세요.'
+
+
 def render_detail_page():
-    user = data.current_user()
+    user = auth.require_login()
     post_id = st.session_state.get('selected_post_id')
     new_view = st.session_state.pop('detail_scroll_to_top', False) or st.session_state.get('_detail_last_post') != post_id
     st.session_state['_detail_last_post'] = post_id
-    post = data.get_post(post_id)
-    liked = (user['user_id'], post_id) in data.get_store()['likes']
+    load_error = None
+    try:
+        post = post_service.get_post(post_id, viewer_id=user['user_id'])
+    except ValueError:
+        post = None
+    except (pymysql.MySQLError, OSError):
+        post = None
+        load_error = '게시물을 불러오지 못했어요. DB 연결을 확인한 후 다시 시도해 주세요.'
+    liked = bool(post and post['is_liked'])
     css = ui.CSS + DETAIL_CSS
     css += f'.st-key-detail_header [data-testid="stColumn"]:first-child button{{background-image:url("{ui.asset("write_back")}");}}'
     css += f'.st-key-detail_header [data-testid="stColumn"]:last-child button{{background-image:url("{ui.asset("detail_share")}");}}'
@@ -150,10 +169,31 @@ def render_detail_page():
         with share:
             if st.button('공유', key='detail_share', disabled=post is None):
                 share_post(post_id)
+    if load_error:
+        st.error(load_error)
+        if st.button('다시 불러오기', key='detail_retry'):
+            st.rerun()
+        return
     if post is None:
         st.warning('게시물을 찾을 수 없어요. 뒤로 돌아가 다른 글을 선택해 주세요.')
         return
-    followed = (user['user_id'], post['user_id']) in data.get_store()['follows']
+    if st.session_state.pop('_post_created', False):
+        st.toast('모집 글을 등록했어요.')
+    if action_error := st.session_state.pop('_detail_action_error', None):
+        st.error(action_error)
+    followed = post['is_following_author']
+    members = None
+    state = None
+    participation_ready = all(callable(getattr(participation_service, name, None)) for name in
+                              ('get_application_status', 'apply_to_post', 'cancel_application'))
+    try:
+        if callable(getattr(participation_service, 'get_members', None)):
+            members = participation_service.get_members(post_id)
+        if participation_ready:
+            state = participation_service.get_application_status(post_id, user['user_id'])
+    except (pymysql.MySQLError, OSError, ValueError, LookupError, PermissionError):
+        participation_ready = False
+        st.warning('참여 정보를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.')
     with st.container(key='detail_content'):
         with st.container(key='detail_author'):
             rating = '평가 없음' if post['rating'] is None else f"평점 {post['rating']:.1f}"
@@ -165,7 +205,8 @@ def render_detail_page():
             if user['user_id'] != post['user_id']:
                 with st.container(key='detail_follow'):
                     st.button('팔로잉' if followed else '팔로우', key='detail_follow_button',
-                              on_click=data.toggle_follow, args=(user['user_id'], post['user_id']))
+                              on_click=perform_action,
+                              args=(social_service.set_follow, user['user_id'], post['user_id'], not followed))
         st.markdown(f'<div class="detail-title">{ui.e(post["title"])}</div>'
                     f'<div class="detail-body">{ui.e(post["body"])}</div>', unsafe_allow_html=True)
         info = [('detail_clock', '식사 시간', post['meal_time'].strftime('%m월 %d일 %H:%M')),
@@ -174,33 +215,45 @@ def render_detail_page():
         st.markdown('<div class="detail-info">' + ''.join(
             f'<div class="detail-info-row">{ui.icon(icon)}<span class="detail-info-label">{label}</span>'
             f'<span class="detail-info-value">{ui.e(value)}</span></div>' for icon, label, value in info) + '</div>', unsafe_allow_html=True)
-        members = data.get_members(post_id)
         slots = []
-        for member in members:
+        for member in members or []:
             name = member['nickname'] + ('(방장)' if member['is_host'] else '')
             slots.append(f'<div class="detail-member">{ui.icon("detail_host" if member["is_host"] else "detail_guest")}'
                          f'<span class="detail-member-label">{ui.e(name)}</span></div>')
-        for _ in range(max(0, post['capacity'] - len(members))):
+        for _ in range(max(0, post['capacity'] - len(members)) if members is not None else 0):
             slots.append(f'<div class="detail-member vacant">{ui.icon("detail_empty")}<span class="detail-member-label">빈자리</span></div>')
+        if members is None:
+            slots.append('<div class="detail-demo-note">멤버 목록은 참여 서비스 연결 후 표시돼요.</div>')
         st.markdown(f'<div class="detail-member-title">참여 멤버<span>{post["current_count"]}/{post["capacity"]}</span></div>'
                     '<div class="detail-members">' + ''.join(slots) + '</div><div class="detail-divider"></div>'
                     f'<div class="detail-reactions"><span class="detail-reaction">{ui.icon("detail_heart")}좋아요 {post["like_count"]}</span>'
                     f'<span class="detail-reaction">{ui.icon("detail_comment")}댓글 {post["comment_count"]}</span></div>', unsafe_allow_html=True)
-        for comment in data.get_comments(post_id):
+        comments_failed = False
+        try:
+            comments = social_service.list_comments(post_id)
+        except (pymysql.MySQLError, OSError):
+            comments, comments_failed = [], True
+            st.error('댓글을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.')
+        for comment in comments:
             st.markdown(f'<div class="detail-comment">{ui.icon("detail_comment_avatar")}<div class="detail-comment-copy">'
                         f'<div class="detail-comment-name">{ui.e(comment["nickname"])}</div>'
                         f'<div class="detail-comment-body">{ui.e(comment["content"])}</div></div></div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="detail-demo-note">예시 화면 · {ui.e(user["nickname"])}으로 체험 중<br>'
-                    '댓글·좋아요·팔로우·신청은 현재 브라우저에서만 반영돼요.</div>', unsafe_allow_html=True)
-        with st.form(f'detail_comment_form_{post_id}', clear_on_submit=True, border=False):
+        if not comments and not comments_failed:
+            st.caption('아직 댓글이 없어요. 첫 댓글을 남겨보세요.')
+        if st.session_state.pop(f'_clear_comment_{post_id}', False):
+            st.session_state[f'detail_comment_input_{post_id}'] = ''
+        with st.form(f'detail_comment_form_{post_id}', clear_on_submit=False, border=False):
             content = st.text_area('댓글 작성', placeholder='함께 먹을 사람에게 댓글을 남겨보세요', height=80,
                                    key=f'detail_comment_input_{post_id}')
             if st.form_submit_button('댓글 등록'):
                 try:
-                    data.add_comment(post_id, user, content)
-                except ValueError as exc:
+                    social_service.create_comment(post_id, user['user_id'], content)
+                except (ValueError, LookupError, PermissionError) as exc:
                     st.error(str(exc))
+                except (pymysql.MySQLError, OSError):
+                    st.error('댓글을 등록하지 못했어요. 입력한 내용은 유지돼요. 다시 시도해 주세요.')
                 else:
+                    st.session_state[f'_clear_comment_{post_id}'] = True
                     st.rerun()
 
     if new_view:
@@ -216,22 +269,27 @@ def render_detail_page():
         setTimeout(resetDetailScroll, 400);
         })();
         </script>''', unsafe_allow_javascript=True)
-    label, disabled, hint, action = join_presentation(post, user['user_id'], data.application_state(post_id, user['user_id']))
+    label, disabled, hint, action = join_presentation(post, user['user_id'], state)
+    if not participation_ready and user['user_id'] != post['user_id'] and not disabled:
+        label, disabled, hint, action = '참여 신청 준비 중', True, '참여 서비스가 연결되면 신청할 수 있어요', None
     with st.container(key='detail_actions'):
-        st.markdown(f'<div class="detail-join-hint">{ui.e(hint)} · 체험</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="detail-join-hint">{ui.e(hint)}</div>', unsafe_allow_html=True)
         like_column, apply_column = st.columns([48, 300])
         with like_column:
             st.button('좋아요 취소' if liked else '좋아요', key='detail_like_button',
-                      on_click=data.toggle_like, args=(post_id, user['user_id']))
+                      on_click=perform_action,
+                      args=(social_service.set_like, post_id, user['user_id'], not liked))
         with apply_column:
             if st.button(label, key='detail_apply', disabled=disabled):
                 try:
                     if action == 'cancel':
-                        data.cancel_application(post_id, user['user_id'])
+                        participation_service.cancel_application(post_id, user['user_id'])
                     else:
-                        data.apply_to_post(post_id, user['user_id'])
-                except ValueError as exc:
+                        participation_service.apply_to_post(post_id, user['user_id'])
+                except (ValueError, LookupError, PermissionError) as exc:
                     st.toast(str(exc))
+                except (pymysql.MySQLError, OSError):
+                    st.toast('신청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.')
                 else:
                     st.rerun()
 
