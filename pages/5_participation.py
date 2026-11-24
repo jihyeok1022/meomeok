@@ -7,7 +7,7 @@ import streamlit as st
 
 import auth
 from services import user_service, participation_service, chat_service
-from ui_common import CSS, asset, e
+from ui_common import CSS, asset, e, user_avatar
 
 
 PAGE_CSS = """
@@ -28,7 +28,6 @@ PAGE_CSS = """
 .apply-section{font-size:13px;font-weight:750;margin:6px 0 2px;}
 .apply-empty{background:white;border:1px solid var(--line);border-radius:12px;padding:16px;text-align:center;color:#888;font-size:12px;}
 .apply-person{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;overflow-wrap:anywhere;}
-.apply-avatar{width:28px;height:28px;background:#ffd7c2;border-radius:50%;flex-shrink:0;}
 .st-key-apply_body button{border:1px solid #e7e5e3;border-radius:9px;background:white;color:#333;font-size:13px;min-height:36px;}
 .st-key-apply_body button[kind='primary'],.st-key-apply_body button[data-testid='stBaseButton-primary']{background:var(--orange)!important;color:white!important;border-color:var(--orange)!important;}
 .st-key-apply_body button:disabled{background:#f1f0ee!important;color:#999!important;}
@@ -197,7 +196,7 @@ def render_applicants(user_id, post):
     for row in rows:
         applicant = row["user_id"]
         status = row["status"]
-        html(f'<div class="apply-top"><div class="apply-person"><span class="apply-avatar"></span>{e(row["nickname"])}</div>'
+        html(f'<div class="apply-top"><div class="apply-person">{user_avatar(applicant, 28)}{e(row["nickname"])}</div>'
              f'{status_badge(status, True)}</div>')
         if status == "PENDING" and post["status"] == "OPEN":
             a, b = st.columns(2)

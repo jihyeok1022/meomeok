@@ -107,7 +107,6 @@ DETAIL_CSS = """
 .detail-comment-body{font-size:13px;line-height:19px;color:#3a3a3a;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:1px;}
 .detail-demo-note{font-size:11px;line-height:16px;color:#a0a0a0;margin:8px 0 16px;}
 .st-key-detail_content img{display:block;flex-shrink:0;max-width:none;}
-.st-key-detail_author img{width:36px;height:36px;}
 .st-key-detail_content [data-testid="stMarkdownContainer"] p{color:#1f1f1f;}
 .st-key-detail_content [data-testid="stWidgetLabel"] p{font-size:13px;color:#1f1f1f!important;}
 .st-key-detail_content [data-baseweb="textarea"]{background:white!important;border:1px solid #dcdcdc!important;border-radius:10px;}
@@ -217,7 +216,7 @@ def render_detail_page():
         with st.container(key='detail_author', horizontal=True, wrap=False, vertical_alignment='center'):
             rating = '평가 없음' if post['rating'] is None else f"평점 {post['rating']:.1f}"
             closed = '' if post['status'] == 'OPEN' else ' closed'
-            st.html(ui.icon('detail_author'), width=36)
+            st.html(ui.user_avatar(post["user_id"], 36), width=36)
             with st.container(key='detail_author_copy', gap=None):
                 with st.container(key='detail_author_line', horizontal=True, wrap=False,
                                   vertical_alignment='bottom'):
@@ -244,7 +243,7 @@ def render_detail_page():
         slots = []
         for member in members or []:
             name = member['nickname'] + ('(방장)' if member['is_host'] else '')
-            slots.append(f'<div class="detail-member">{ui.icon("detail_host" if member["is_host"] else "detail_guest")}'
+            slots.append(f'<div class="detail-member">{ui.user_avatar(member["user_id"], 44)}'
                          f'<span class="detail-member-label">{ui.e(name)}</span></div>')
         for _ in range(max(0, post['capacity'] - len(members)) if members is not None else 0):
             slots.append(f'<div class="detail-member vacant">{ui.icon("detail_empty")}<span class="detail-member-label">빈자리</span></div>')
@@ -261,7 +260,7 @@ def render_detail_page():
             comments, comments_failed = [], True
             st.error('댓글을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.')
         for comment in comments:
-            st.markdown(f'<div class="detail-comment">{ui.icon("detail_comment_avatar")}<div class="detail-comment-copy">'
+            st.markdown(f'<div class="detail-comment">{ui.user_avatar(comment["user_id"], 28)}<div class="detail-comment-copy">'
                         f'<div class="detail-comment-name">{ui.e(comment["nickname"])}</div>'
                         f'<div class="detail-comment-body">{ui.e(comment["content"])}</div></div></div>', unsafe_allow_html=True)
         if not comments and not comments_failed:
