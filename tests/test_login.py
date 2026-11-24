@@ -10,7 +10,7 @@ from streamlit.testing.v1 import AppTest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 import auth
-from services import post_service
+from services import post_service, review_service, stats_service, user_service
 from datetime import datetime, timedelta
 
 
@@ -74,10 +74,23 @@ class LoginTests(unittest.TestCase):
             self.submit(app)
             self.assertEqual(app.session_state['user'], {'user_id': 1, 'nickname': '테스트'})
             self.assertTrue(app.button(key='db_write_post'))
-            app.session_state['write_draft'] = {'title': 'private draft'}
-            app.button(key='feed_logout').click().run()
+            self.assertFalse(any(button.label == '로그아웃' for button in app.button))
+            profile = dict(nickname='테스트', neighborhood='교내', birth_year=2003,
+                           gachon_email='test@gachon.ac.kr', follower_count=0, following_count=0)
+            with (
+                patch.object(user_service, 'get_profile', return_value=profile),
+                patch.object(user_service, 'get_user_posts', return_value=[]),
+                patch.object(stats_service, 'get_user_average_rating', return_value=None),
+                patch.object(review_service, 'get_received_reviews', return_value=[]),
+            ):
+                app.switch_page('pages/4_profile.py').run()
+                self.assertFalse(app.exception)
+                self.assertEqual(sum(button.label == '로그아웃' for button in app.button), 1)
+                app.session_state['write_draft'] = {'title': 'private draft'}
+                with patch('streamlit.switch_page') as switch_page:
+                    app.button(key='profile_logout').click().run()
+                switch_page.assert_called_once_with('pages/1_feed.py')
             self.assertFalse(app.exception)
-            self.assertTrue(app.text_input(key='login_password'))
             self.assertNotIn('user', app.session_state)
             self.assertNotIn('write_draft', app.session_state)
             self.assertNotIn('detail_demo_store', app.session_state)
