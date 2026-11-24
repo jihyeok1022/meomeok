@@ -5,7 +5,7 @@ import streamlit as st
 
 import auth
 from services import chat_service, post_service
-from ui_common import CSS, asset, e
+from ui_common import CSS, asset, e, user_avatar
 
 
 PAGE_CSS = """
@@ -26,7 +26,7 @@ PAGE_CSS = """
 .chat-date{text-align:center;margin:8px 0;color:#888;font-size:11px;}
 .chat-message{display:flex;align-items:flex-end;gap:6px;margin:8px 0;}
 .chat-message.mine{justify-content:flex-end;}
-.chat-message .chat-avatar{width:29px;height:29px;font-size:11px;align-self:flex-start;}
+.chat-message .user-avatar{align-self:flex-start;}
 .chat-message-body{max-width:78%;min-width:0;}
 .chat-sender{font-size:11px;color:#777;margin-bottom:4px;overflow-wrap:anywhere;}
 .chat-bubble{background:white;border-radius:13px 13px 13px 3px;padding:10px 12px;font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere;}
@@ -155,7 +155,7 @@ def render_messages(rows, user_id):
                           f'<div class="chat-message-body"><div class="chat-bubble">{content}</div></div></div>')
         else:
             nickname = str(row["nickname"] or "회원")
-            chunks.append(f'<div class="chat-message"><div class="chat-avatar">{e(nickname[:1])}</div>'
+            chunks.append(f'<div class="chat-message">{user_avatar(row["user_id"], 29)}'
                           f'<div class="chat-message-body"><div class="chat-sender">{e(nickname)}</div>'
                           f'<div class="chat-bubble">{content}</div></div><span class="chat-time">{time}</span></div>')
     html("".join(chunks))
