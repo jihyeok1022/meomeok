@@ -5,11 +5,29 @@ import pymysql
 import streamlit as st
 
 import auth
-from services import user_service, review_service, stats_service, chat_service
+from services import user_service, review_service, stats_service, chat_service, social_service
 from ui_common import CSS, STATUS_LABELS, asset, e
 
 
 PROFILE_CSS = """
+
+/* Compact native-button hit area; the visible HTML retains the existing design. */
+.st-key-profile_body [class*="st-key-public_follow_hit_"]{position:relative!important;isolation:isolate;gap:0!important;}
+.st-key-profile_body [class*="st-key-public_follow_hit_"] > :is([data-testid="stElementContainer"],[data-testid="stLayoutWrapper"]):has([data-testid="stButton"]){position:absolute!important;inset:0!important;width:100%!important;height:100%!important;z-index:2;margin:0!important;padding:0!important;}
+.st-key-profile_body [class*="st-key-public_follow_hit_"] [data-testid="stButton"]{width:100%!important;height:100%!important;}
+.st-key-profile_body [class*="st-key-public_follow_hit_"] button{display:block!important;width:100%!important;height:100%!important;min-height:0!important;min-width:0!important;padding:0!important;border:0!important;border-radius:6px!important;background:transparent!important;box-shadow:none!important;cursor:pointer!important;}
+.st-key-profile_body [class*="st-key-public_follow_hit_"] button p{opacity:0!important;}
+.st-key-profile_body [class*="st-key-public_follow_hit_"] button:focus-visible{outline:2px solid var(--orange)!important;outline-offset:1px;}
+.st-key-profile_body [class*="st-key-public_follow_hit_"] button:hover{background:rgba(255,122,61,.06)!important;}
+
+.st-key-profile_body [class*="st-key-public_follow_hit_"]{width:fit-content!important;max-width:100%;align-self:flex-start;}
+.public-follow-person{width:max-content;max-width:100%;padding:2px 4px 2px 0;}
+/* Same back-icon dimensions as the existing post detail header. */
+.st-key-public_profile_back{width:26px!important;min-width:26px!important;height:26px!important;margin-left:-4px;gap:0!important;}
+.st-key-public_profile_back [data-testid="stButton"]{width:26px!important;height:26px!important;line-height:0;}
+.st-key-public_profile_back button{display:block!important;width:26px!important;min-width:26px!important;height:26px!important;min-height:26px!important;padding:0!important;border:0!important;border-radius:0!important;background-color:transparent!important;background-repeat:no-repeat!important;background-position:center!important;box-shadow:none!important;cursor:pointer!important;}
+.st-key-public_profile_back button p{font-size:0!important;line-height:0!important;}
+.st-key-public_profile_back button:focus-visible{outline:2px solid var(--orange)!important;outline-offset:2px;}
 .profile-heading{background:white;padding:8px 20px 16px;font-size:20px;font-weight:800;}
 .st-key-profile_body{padding:12px 16px 24px!important;}
 .st-key-profile_body [data-testid='stVerticalBlock']{gap:8px!important;}
@@ -63,6 +81,9 @@ for nav_key, asset_name in (("home", "home"), ("apply", "calendar"), ("chat", "g
     PROFILE_CSS += f'.st-key-nav_{nav_key} button:before{{mask-image:url("{asset(asset_name)}");}}\n'
 
 
+PROFILE_CSS += f'.st-key-public_profile_back button{{background-image:url("{asset("write_back")}")!important;}}\n'
+
+
 def html(markup):
     st.markdown(markup, unsafe_allow_html=True)
 
@@ -106,12 +127,13 @@ def open_post(post_id):
 
 def bottom_nav():
     items = [("모집 글", "1_feed.py", "nav_home"), ("내 신청", "5_participation.py", "nav_apply"),
-             ("톡방", "6_chat.py", "nav_chat"), ("내 프로필", None, "nav_profile")]
+             ("톡방", "6_chat.py", "nav_chat"), ("내 프로필", "4_profile.py", "nav_profile")]
     with st.container(key="bottom_nav"):
         for column, (label, filename, key) in zip(st.columns(4), items):
             with column, st.container(key=key):
                 if st.button(label, key=f"profile_{key}", use_container_width=True) and filename:
-                    navigate(filename)
+                    if key != "nav_profile" or st.query_params.get("user") or st.query_params.get("back_post"):
+                        navigate(filename)
 
 
 def render_follow_list(user_id, followers):
@@ -122,9 +144,14 @@ def render_follow_list(user_id, followers):
     if not rows:
         empty("아직 팔로워가 없어요." if followers else "아직 팔로잉하는 사람이 없어요.")
     for row in rows:
-        html(f'<div class="profile-review-top"><span class="profile-review-avatar"></span>'
-             f'<div><div class="profile-review-name">{e(row["nickname"])}</div>'
-             f'<div class="profile-muted">{e(row.get("neighborhood") or "")}</div></div></div>')
+        target = int(row["user_id"])
+        suffix = "followers" if followers else "followings"
+        with st.container(key=f"public_follow_hit_{suffix}_{target}", width="content", gap=None):
+            html(f'<div class="profile-review-top public-follow-person"><span class="profile-review-avatar"></span>'
+                 f'<div><div class="profile-review-name">{e(row["nickname"])}</div>'
+                 f'<div class="profile-muted">{e(row.get("neighborhood") or "")}</div></div></div>')
+            if st.button(f'{row["nickname"]} 프로필 보기', key=f"public_follow_open_{suffix}_{target}"):
+                navigate("4_profile.py", user=target, back_list=suffix)
 
 
 def render_edit(user_id, profile):
@@ -176,7 +203,8 @@ def render_logout():
             st.switch_page("pages/1_feed.py")
 
 
-def render_identity(user_id, profile):
+def render_identity(user_id, profile, viewer_id=None):
+    own = viewer_id is None or viewer_id == user_id
     rating_label = "연동 대기"
     rating_func = getattr(stats_service, "get_user_average_rating", None)
     if callable(rating_func):
@@ -186,16 +214,23 @@ def render_identity(user_id, profile):
         except Exception:
             rating_label = "조회 실패"
     with st.container(key="profile_identity"):
+        if own:
+            private_info = (f' · {e(profile["birth_year"])}년생</div>'
+                            f'<div class="profile-muted">{e(profile["gachon_email"])}</div>')
+        else:
+            private_info = '</div>'
         html(f'<div class="profile-person"><div class="profile-avatar"></div><div>'
              f'<div class="profile-name">{e(profile["nickname"])}</div>'
-             f'<div class="profile-muted">{e(profile["neighborhood"])} · {e(profile["birth_year"])}년생</div>'
-             f'<div class="profile-muted">{e(profile["gachon_email"])}</div></div></div>')
+             f'<div class="profile-muted">{e(profile.get("neighborhood") or "")}{private_info}</div></div>')
         html(f'<div class="profile-bio">{e(profile.get("bio") or "아직 자기소개가 없어요.")}</div>')
         html(f'<div class="profile-tastes">음식 취향 · {e(profile.get("food_preference") or "미등록")}<br>'
              f'선호 음식 · {e(profile.get("favorite_food") or "미등록")}</div>')
         for col, (value, label) in zip(st.columns(3), [(rating_label,"평균 평점"), (profile["follower_count"],"팔로워"), (profile["following_count"],"팔로잉")]):
             with col:
                 html(f'<div class="profile-stat"><strong>{e(value)}</strong><small>{e(label)}</small></div>')
+        if not own:
+            render_public_follow(viewer_id, user_id)
+            return
         if st.button("프로필 수정" if not st.session_state.get("profile_edit_open") else "수정 닫기", key="profile_edit_toggle", use_container_width=True):
             st.session_state["profile_edit_open"] = not st.session_state.get("profile_edit_open", False)
             st.rerun()
@@ -299,11 +334,93 @@ def render_review_form(user_id):
                     st.rerun()
 
 
+def positive_query(name):
+    """Query parameters identify targets, never the authenticated account."""
+    value = st.query_params.get(name)
+    if value is None:
+        return None
+    try:
+        result = int(value)
+        return result if 0 < result <= 2**64 - 1 else None
+    except (ValueError, TypeError):
+        return None
+
+
+def render_public_follow(viewer_id, target_id):
+    ok, followers = read_data(user_service.get_followings, viewer_id)
+    if not ok:
+        return
+    following = any(int(row["user_id"]) == target_id for row in followers)
+    if st.button("팔로잉" if following else "팔로우", key=f"public_follow_{target_id}",
+                 type="secondary" if following else "primary", use_container_width=True):
+        ok, _ = read_data(social_service.set_follow, int(viewer_id), target_id, not following)
+        if ok:
+            st.rerun()
+
+
+def return_from_profile():
+    post_id = positive_query("back_post")
+    if post_id:
+        st.session_state["selected_post_id"] = post_id
+        st.session_state["detail_scroll_to_top"] = True
+        params = {"post": post_id}
+        if st.query_params.get("back_from") == "search":
+            params["from"] = "search"
+        navigate("3_post_detail.py", **params)
+    source = st.query_params.get("back_list")
+    if source in ("followers", "followings"):
+        st.session_state["profile_follow_view"] = source
+    navigate("4_profile.py")
+
+
+def render_profile_back():
+    with st.container(key="public_profile_back", width="content"):
+        if st.button("뒤로", key="public_profile_return"):
+            return_from_profile()
+
+
+def render_public_profile(viewer_id, target_id):
+    # Explicit public branch: no review-detail, email, rooms, edit or logout calls.
+    html('<div class="status-bar" aria-hidden="true"><strong>9:41</strong><span>LTE 100%</span></div>')
+    with st.container(key="profile_body"):
+        render_profile_back()
+        if target_id is None:
+            empty("프로필을 찾을 수 없어요.")
+            return
+        ok, profile = read_data(user_service.get_profile, target_id)
+        if not ok:
+            if st.button("다시 불러오기", key="public_profile_retry"):
+                st.rerun()
+            return
+        if profile is None:
+            empty("프로필을 찾을 수 없어요.")
+            return
+        section(f'{profile["nickname"]}님의 프로필')
+        render_identity(target_id, profile, viewer_id=viewer_id)
+        render_posts(target_id)
+
+
 def main():
     st.set_page_config(page_title="머먹 · 내 프로필", page_icon="🍚", layout="centered")
     user = auth.require_login()
     user_id = user["user_id"]
     html(f"<style>{CSS}{PROFILE_CSS}</style>")
+    target_id = positive_query("user")
+    view_token = (int(user_id), target_id, st.query_params.get("back_post"))
+    if st.session_state.get("_public_profile_view") != view_token:
+        st.session_state["_public_profile_view"] = view_token
+        st.html("""<script>
+        (() => {
+            const reset = () => document.querySelector('[data-testid="stMain"]')?.scrollTo(0, 0);
+            requestAnimationFrame(reset); setTimeout(reset, 150);
+        })();
+        </script>""", unsafe_allow_javascript=True)
+    if "user" in st.query_params and target_id != int(user_id):
+        render_public_profile(int(user_id), target_id)
+        bottom_nav()
+        return
+    if positive_query("back_post"):
+        render_profile_back()
     html('<div class="status-bar" aria-hidden="true"><strong>9:41</strong><span>LTE 100%</span></div>'
          '<div class="profile-heading">내 프로필</div>')
     with st.container(key="profile_body"):
