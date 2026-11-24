@@ -33,6 +33,17 @@ def e(value):
     return escape(str(value))
 
 
+AVATAR_COLORS = ("#efd8cc", "#e6ded5", "#eedcdf", "#e3e3d4", "#eee0c7")
+
+
+def user_avatar(user_id: int, size: int) -> str:
+    """Render a soft avatar with a stable color for each account."""
+    color = AVATAR_COLORS[(int(user_id) - 1) % len(AVATAR_COLORS)]
+    return (f'<span class="user-avatar" aria-hidden="true" '
+            f'style="width:{int(size)}px;height:{int(size)}px;'
+            f'--user-avatar-color:{color}"></span>')
+
+
 CSS = """
 /* Reference: Figma 2:40. All dimensions below are CSS pixels. */
 :root{--orange:#ff7a3d;--paper:#f7f6f4;--line:#ececec;--ink:#1f1f1f;--muted:#6b6b6b;}
@@ -156,6 +167,10 @@ html,body,[data-testid="stApp"],[data-testid="stAppViewContainer"]{
  margin:0;padding:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0;}
 .region{display:flex;align-items:center;gap:4px;font-size:13px;line-height:18px;color:var(--muted);}
 .card-rule{height:1px;background:var(--line);flex-shrink:0;}
+.user-avatar{display:inline-block;flex:none;border-radius:50%;vertical-align:middle;
+ background-color:var(--user-avatar-color);}
+:is(.host,.detail-comment,.profile-review-top,.apply-person,.chat-message) .user-avatar{
+ background-color:color-mix(in srgb,var(--user-avatar-color) 82%,white);}
 .host{display:flex;align-items:center;gap:6px;font-size:12px;line-height:17px;white-space:nowrap;min-width:0;}
 .host span{overflow:hidden;text-overflow:ellipsis;}
 .stats{display:flex;align-items:center;gap:10px;white-space:nowrap;flex-shrink:0;}

@@ -6,7 +6,7 @@ import streamlit as st
 
 import auth
 from services import user_service, review_service, stats_service, chat_service, social_service
-from ui_common import CSS, STATUS_LABELS, asset, e
+from ui_common import CSS, STATUS_LABELS, asset, e, user_avatar
 
 
 PROFILE_CSS = """
@@ -39,7 +39,6 @@ PROFILE_CSS = """
 .st-key-profile_followers,.st-key-profile_followings,[class*='st-key-profile_post_'],
 [class*='st-key-profile_room_']{background:white;border:1px solid var(--line);border-radius:14px;padding:14px!important;}
 .profile-person{display:flex;align-items:center;gap:11px;min-width:0;}
-.profile-avatar{width:58px;height:58px;flex-shrink:0;border-radius:50%;background:#ffd7c2;}
 .profile-name{font-size:18px;font-weight:800;overflow-wrap:anywhere;}
 .profile-muted{font-size:12px;color:var(--muted);overflow-wrap:anywhere;}
 .profile-bio{font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere;margin:5px 0;}
@@ -56,7 +55,6 @@ PROFILE_CSS = """
 .profile-status{display:inline-block;border-radius:6px;padding:3px 8px;background:#fff0e7;color:#d95f29;font-size:11px;font-weight:700;}
 .profile-review{background:white;border:1px solid var(--line);border-radius:12px;padding:13px;}
 .profile-review-top{display:flex;gap:9px;align-items:center;}
-.profile-review-avatar{width:30px;height:30px;border-radius:50%;background:#e9e9e9;flex-shrink:0;}
 .profile-review-name{font-size:13px;font-weight:700;overflow-wrap:anywhere;}
 .profile-stars{color:#e9a500;font-size:14px;letter-spacing:1px;}
 .profile-review-content{font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:8px;}
@@ -147,7 +145,7 @@ def render_follow_list(user_id, followers):
         target = int(row["user_id"])
         suffix = "followers" if followers else "followings"
         with st.container(key=f"public_follow_hit_{suffix}_{target}", width="content", gap=None):
-            html(f'<div class="profile-review-top public-follow-person"><span class="profile-review-avatar"></span>'
+            html(f'<div class="profile-review-top public-follow-person">{user_avatar(row["user_id"], 30)}'
                  f'<div><div class="profile-review-name">{e(row["nickname"])}</div>'
                  f'<div class="profile-muted">{e(row.get("neighborhood") or "")}</div></div></div>')
             if st.button(f'{row["nickname"]} 프로필 보기', key=f"public_follow_open_{suffix}_{target}"):
@@ -219,7 +217,7 @@ def render_identity(user_id, profile, viewer_id=None):
                             f'<div class="profile-muted">{e(profile["gachon_email"])}</div>')
         else:
             private_info = '</div>'
-        html(f'<div class="profile-person"><div class="profile-avatar"></div><div>'
+        html(f'<div class="profile-person">{user_avatar(user_id, 58)}<div>'
              f'<div class="profile-name">{e(profile["nickname"])}</div>'
              f'<div class="profile-muted">{e(profile.get("neighborhood") or "")}{private_info}</div></div>')
         html(f'<div class="profile-bio">{e(profile.get("bio") or "아직 자기소개가 없어요.")}</div>')
@@ -294,8 +292,9 @@ def render_review_list(rows, written=False):
         empty("아직 작성한 리뷰가 없어요." if written else "아직 받은 리뷰가 없어요.")
     for review in rows:
         nickname = review["reviewee_nickname" if written else "reviewer_nickname"]
+        avatar_id = review["reviewee_id" if written else "reviewer_id"]
         rating = int(review["rating"])
-        html(f'<div class="profile-review"><div class="profile-review-top"><div class="profile-review-avatar"></div><div>'
+        html(f'<div class="profile-review"><div class="profile-review-top">{user_avatar(avatar_id, 30)}<div>'
              f'<div class="profile-review-name">{e(nickname)} {"님에게" if written else ""}</div>'
              f'<div class="profile-stars" aria-label="별점 {rating}점">{"★" * rating}{"☆" * (5-rating)}</div></div></div>'
              f'<div class="profile-muted">{e(review["post_title"])} · {e(date_label(review["created_at"], "%m.%d"))}</div>'

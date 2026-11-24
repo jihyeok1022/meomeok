@@ -8,7 +8,7 @@ import pymysql
 import auth
 from services import post_service
 
-from ui_common import CSS, FOOD_CATEGORIES, REGIONS, STATUS_LABELS, FEED_STATUSES, asset, icon, e
+from ui_common import CSS, FOOD_CATEGORIES, REGIONS, STATUS_LABELS, FEED_STATUSES, asset, icon, e, user_avatar
 
 
 # DB CHECK 제약조건. '전체'는 검색 UI에서만 사용하는 값이다.
@@ -180,7 +180,7 @@ def main(*, search_mode=False):
             f'<span class="time">{icon("clock")}{e(time_label(post["meal_time"]))}</span></div>'
             f'<div class="card-title">{e(post["title"])}</div>'
             f'<div class="region">{icon("pin")}{e(post["region"])}</div><div class="card-rule"></div><div class="card-bottom">'
-            f'<div class="host">{icon("avatar")}<span>{e(post["nickname"])} · {e(rating)}</span></div>'
+            f'<div class="host">{user_avatar(post["user_id"], 24)}<span>{e(post["nickname"])} · {e(rating)}</span></div>'
             f'<div class="stats"><span class="stat members" title="작성자 포함">{icon("users")}{post["current_count"]}/{post["capacity"]}명</span>'
             f'<span class="stat">{icon("heart")}{post["like_count"]}</span>'
             f'<span class="stat">{icon("comment")}{post["comment_count"]}</span></div></div></article>'
