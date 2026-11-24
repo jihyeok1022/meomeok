@@ -32,22 +32,23 @@ LOGIN_CSS = """
 .st-key-login_shell [data-testid="stForm"]{border:0;padding:0;}
 .st-key-login_shell [data-testid="stTextInput"]{margin-bottom:17px;}
 .st-key-login_shell label p{color:#333!important;font-size:13px!important;font-weight:600;}
-.st-key-login_shell [data-baseweb="input"]{min-height:50px;border:1px solid #e4e2df;
- border-radius:12px;background:#fff!important;box-shadow:none;}
-.st-key-login_shell [data-baseweb="input"]:focus-within{border-color:#ff7a3d;box-shadow:0 0 0 3px #fff1e9;}
-
-/* Base Web paints the inner input wrapper independently of its outer border. */
-.st-key-login_shell [data-baseweb="base-input"]{
- background:#fff!important;color:#1f1f1f!important;}
-.st-key-login_shell input:-webkit-autofill{
- -webkit-box-shadow:0 0 0 1000px #fff inset!important;
- -webkit-text-fill-color:#1f1f1f!important;caret-color:#1f1f1f;}
-
-.st-key-login_shell input{background:transparent!important;color:#1f1f1f!important;
+/* Streamlit's current text-input wrapper and the earlier Base Web input. */
+.st-key-login_shell :is([data-testid="stTextInputRootElement"],[data-baseweb="input"]){
+ min-height:50px;border:1px solid #e4e2df!important;border-radius:12px;
+ background-color:#fff!important;box-shadow:none;color-scheme:light;}
+.st-key-login_shell :is([data-testid="stTextInputRootElement"],[data-baseweb="input"]):focus-within{
+ border-color:#ff7a3d!important;box-shadow:0 0 0 3px #fff1e9;}
+.st-key-login_shell [data-baseweb="base-input"]{background-color:#fff!important;}
+.st-key-login_shell [data-testid="stTextInput"] input{
+ background:transparent!important;color:#1f1f1f!important;caret-color:#1f1f1f;
  -webkit-text-fill-color:#1f1f1f!important;font-size:14px;padding:13px 14px;}
-.st-key-login_shell input::placeholder{color:#aaa!important;-webkit-text-fill-color:#aaa!important;}
-.st-key-login_shell [data-baseweb="input"] button{color:#777!important;background:transparent!important;}
-.st-key-login_shell [data-baseweb="input"] svg{fill:#777;}
+.st-key-login_shell [data-testid="stTextInput"] input::placeholder{
+ color:#737373!important;-webkit-text-fill-color:#737373!important;}
+.st-key-login_shell [data-testid="stTextInput"] input:-webkit-autofill{
+ -webkit-box-shadow:0 0 0 1000px #fff inset!important;}
+.st-key-login_shell :is([data-testid="stTextInputRootElement"],[data-baseweb="input"]) button{
+ color:#666!important;background:transparent!important;}
+.st-key-login_shell [data-testid="stForm"] [data-testid="stTextInput"] [data-testid="InputInstructions"]{display:none!important;}
 .st-key-login_shell [data-testid="stFormSubmitButton"] button{width:100%;min-height:52px;
  margin-top:5px;border:0;border-radius:12px;background:#ff7a3d!important;color:#fff!important;
  box-shadow:0 5px 12px #ff7a3d1a;}
@@ -117,6 +118,7 @@ def render_login():
 page = st.navigation(
     [
         st.Page('pages/1_feed.py', title='모집 글', default=True),
+        st.Page('pages/7_search.py', title='모집 글 검색', url_path='search'),
         st.Page('pages/2_write_post.py', title='글쓰기', url_path='write'),
         st.Page('pages/3_post_detail.py', title='모집 글 상세', url_path='post_detail'),
         st.Page('pages/4_profile.py', title='내 프로필', url_path='profile'),
