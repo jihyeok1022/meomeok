@@ -48,11 +48,7 @@ LOGIN_CSS = """
  -webkit-box-shadow:0 0 0 1000px #fff inset!important;}
 .st-key-login_shell :is([data-testid="stTextInputRootElement"],[data-baseweb="input"]) button{
  color:#666!important;background:transparent!important;}
-.st-key-login_shell [data-testid="stTextInput"] [data-testid="InputInstructions"],
-.st-key-login_shell [data-testid="stTextInput"] [data-testid="InputInstructions"] span{
- color:#666!important;}
-.st-key-login_shell [data-testid="stTextInput"] [data-testid="InputInstructions"] span::before{
- color:inherit!important;}
+.st-key-login_shell [data-testid="stForm"] [data-testid="stTextInput"] [data-testid="InputInstructions"]{display:none!important;}
 .st-key-login_shell [data-testid="stFormSubmitButton"] button{width:100%;min-height:52px;
  margin-top:5px;border:0;border-radius:12px;background:#ff7a3d!important;color:#fff!important;
  box-shadow:0 5px 12px #ff7a3d1a;}
@@ -122,6 +118,7 @@ def render_login():
 page = st.navigation(
     [
         st.Page('pages/1_feed.py', title='모집 글', default=True),
+        st.Page('pages/7_search.py', title='모집 글 검색', url_path='search'),
         st.Page('pages/2_write_post.py', title='글쓰기', url_path='write'),
         st.Page('pages/3_post_detail.py', title='모집 글 상세', url_path='post_detail'),
         st.Page('pages/4_profile.py', title='내 프로필', url_path='profile'),

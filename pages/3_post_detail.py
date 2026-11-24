@@ -59,19 +59,33 @@ DETAIL_CSS = """
 .st-key-detail_header [data-testid="stColumn"]:last-child button{width:22px!important;height:22px!important;min-height:22px!important;}
 .st-key-detail_header button p{font-size:0!important;line-height:0!important;}
 .st-key-detail_content{padding:8px 20px 16px;}
-.st-key-detail_author{position:relative;height:40px;min-height:40px;margin-bottom:16px;}
-.detail-author{display:flex;gap:10px;align-items:center;height:40px;color:#1f1f1f;}
-.detail-author-copy{flex:1;min-width:0;padding-right:64px;}
-.detail-author-name{font-size:14px;line-height:20px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.detail-created{font-size:12px;line-height:17px;color:#a0a0a0;white-space:nowrap;}
-.detail-status{font-size:12px;font-weight:700;line-height:17px;padding:4px 10px;border-radius:6px;
+[data-testid="stMainBlockContainer"] .st-key-detail_author[data-testid="stHorizontalBlock"]{
+ display:grid;grid-template-columns:36px minmax(0,1fr) max-content;gap:10px!important;
+ align-items:center;justify-content:stretch;min-height:46px;margin-bottom:14px;padding-block:2px;overflow:visible;}
+.st-key-detail_author > [data-testid="stLayoutWrapper"]:has(> .st-key-detail_author_copy){width:auto!important;min-width:0;}
+[data-testid="stMainBlockContainer"] .st-key-detail_author_copy[data-testid="stVerticalBlock"]{
+ display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:20px 14px;row-gap:5px!important;min-width:0;}
+.st-key-detail_author_copy > [data-testid="stLayoutWrapper"]{min-width:0;}
+.st-key-detail_author_line[data-testid="stHorizontalBlock"]{
+ display:grid;grid-template-columns:minmax(0,max-content) max-content;grid-template-rows:20px;
+ gap:7px!important;align-items:end!important;justify-content:start;min-width:0;padding-block:0;overflow:visible;}
+.st-key-detail_author_line > [data-testid="stElementContainer"]:has(.detail-author-name){
+ min-width:0;width:auto!important;align-self:end!important;margin:0!important;}
+.st-key-detail_author :is(.stHtml,[data-testid="stHtml"]){margin:0!important;padding:0!important;}
+.detail-author-name{height:18px;color:#24201d;font-size:14px;line-height:18px;font-weight:700;
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.detail-created{height:14px;font-size:11px;line-height:14px;color:#766e68;white-space:nowrap;}
+.detail-status{display:inline-block;font-size:11px;font-weight:700;line-height:16px;padding:3px 8px;border-radius:6px;
  white-space:nowrap;background:#ff7a3d;color:white;}
-.detail-status.closed{background:#bdbdbd;}
-.st-key-detail_follow{position:absolute;right:70px;top:0;width:60px!important;height:24px;}
-.st-key-detail_follow [data-testid="stButton"]{height:24px;line-height:0;}
-.st-key-detail_follow button{display:block;width:60px!important;min-height:24px!important;height:24px!important;
- padding:3px 6px;border:0;border-radius:6px;background:#fff1e9!important;color:#ff7a3d!important;}
-.st-key-detail_follow button p{font-size:11px!important;line-height:16px!important;white-space:nowrap;color:#ff7a3d!important;}
+.detail-status.closed{background:#f3f0ed;color:#655d57;}
+.st-key-detail_author_line > :is(.st-key-detail_follow,[data-testid="stLayoutWrapper"]:has(> .st-key-detail_follow)){
+ width:48px!important;height:18px!important;align-self:end!important;margin:0 0 2px!important;}
+.st-key-detail_follow{width:48px!important;height:18px!important;}
+.st-key-detail_follow [data-testid="stElementContainer"],.st-key-detail_follow [data-testid="stButton"]{height:18px;line-height:0;}
+.st-key-detail_follow button{display:flex;align-items:center;justify-content:center;box-sizing:border-box;
+ width:48px!important;min-height:18px!important;height:18px!important;padding:0 4px;
+ border:1px solid #e5e1dd;border-radius:5px;background:#fff!important;color:#6b625c!important;}
+.st-key-detail_follow button p{margin:0;font-size:10px!important;line-height:12px!important;white-space:nowrap;color:inherit!important;}
 .detail-title{font-size:21px;line-height:30px;font-weight:700;color:#1f1f1f;overflow-wrap:anywhere;margin:0 0 16px;}
 .detail-body{font-size:15px;line-height:22px;color:#3a3a3a;white-space:pre-wrap;overflow-wrap:anywhere;margin-bottom:16px;}
 .detail-info{display:flex;flex-direction:column;gap:12px;padding:14px 16px;border-radius:12px;background:#f7f6f4;margin-bottom:16px;}
@@ -93,11 +107,13 @@ DETAIL_CSS = """
 .detail-comment-body{font-size:13px;line-height:19px;color:#3a3a3a;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:1px;}
 .detail-demo-note{font-size:11px;line-height:16px;color:#a0a0a0;margin:8px 0 16px;}
 .st-key-detail_content img{display:block;flex-shrink:0;max-width:none;}
+.st-key-detail_author img{width:36px;height:36px;}
 .st-key-detail_content [data-testid="stMarkdownContainer"] p{color:#1f1f1f;}
 .st-key-detail_content [data-testid="stWidgetLabel"] p{font-size:13px;color:#1f1f1f!important;}
 .st-key-detail_content [data-baseweb="textarea"]{background:white!important;border:1px solid #dcdcdc!important;border-radius:10px;}
 .st-key-detail_content textarea{background:white!important;color:#1f1f1f!important;-webkit-text-fill-color:#1f1f1f!important;font-size:13px;padding:12px;}
 .st-key-detail_content textarea::placeholder{-webkit-text-fill-color:#a0a0a0!important;}
+.st-key-detail_content [data-testid="stForm"] [data-testid="stTextArea"] [data-testid="InputInstructions"]{display:none!important;}
 .st-key-detail_content [data-testid="stFormSubmitButton"] button{background:#fff1e9!important;color:#ff7a3d!important;border:0;border-radius:8px;margin-top:8px;}
 .st-key-detail_content [data-testid="stFormSubmitButton"] button p{font-size:13px!important;color:#ff7a3d!important;}
 .st-key-detail_actions{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(390px,100vw)!important;
@@ -116,15 +132,15 @@ DETAIL_CSS = """
 .st-key-detail_actions [data-testid="stColumn"]:first-child button p{font-size:0!important;line-height:0!important;}
 .st-key-detail_actions button:disabled{background:#ececec!important;color:#888!important;opacity:1;}
 .st-key-detail_actions button:disabled p{color:#888!important;}
-@media(max-width:350px){.detail-author-copy{padding-right:42px;}.st-key-detail_follow{width:48px!important;right:64px;}
- .st-key-detail_follow button{width:48px!important;}.detail-created{font-size:10px;}.detail-info-label{flex-basis:56px;}
+@media(max-width:350px){.detail-created{font-size:10px;}.detail-info-label{flex-basis:56px;}
  .detail-info-row{gap:8px;}.detail-info-value{font-size:12px;}.detail-join-hint{font-size:10px;}}
 """
 
 
 def go_back():
+    from_search = st.query_params.get('from') == 'search'
     st.query_params.pop('post', None)
-    st.switch_page('pages/1_feed.py')
+    st.switch_page('pages/7_search.py' if from_search else 'pages/1_feed.py')
 
 
 def perform_action(function, *args):
@@ -155,9 +171,12 @@ def render_detail_page():
     css = ui.CSS + DETAIL_CSS
     css += f'.st-key-detail_header [data-testid="stColumn"]:first-child button{{background-image:url("{ui.asset("write_back")}");}}'
     css += f'.st-key-detail_header [data-testid="stColumn"]:last-child button{{background-image:url("{ui.asset("detail_share")}");}}'
-    css += f'.st-key-detail_actions [data-testid="stColumn"]:first-child button{{background-image:url("{ui.asset("detail_like")}")!important;}}'
+    like_icon = ui.asset('detail_like')
+    css += f'.st-key-detail_actions [data-testid="stColumn"]:first-child button{{background-image:url("{like_icon}")!important;}}'
     if liked:
-        css += '.st-key-detail_actions [data-testid="stColumn"]:first-child button{background-color:#fff1e9!important;border-color:#ff7a3d;}'
+        css += '.st-key-detail_actions [data-testid="stColumn"]:first-child button{background-color:#ffe5d5!important;border-color:#eea884;}'
+    if post and post['is_following_author']:
+        css += '.st-key-detail_follow button{background:#fff0e6!important;border-color:#f1cfbb;color:#a94d27!important;}'
     st.markdown(f'<style>{css}</style>', unsafe_allow_html=True)
     with st.container(key='detail_header'):
         back, title, share = st.columns([26, 1, 22])
@@ -195,18 +214,25 @@ def render_detail_page():
         participation_ready = False
         st.warning('참여 정보를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.')
     with st.container(key='detail_content'):
-        with st.container(key='detail_author'):
+        with st.container(key='detail_author', horizontal=True, wrap=False, vertical_alignment='center'):
             rating = '평가 없음' if post['rating'] is None else f"평점 {post['rating']:.1f}"
             closed = '' if post['status'] == 'OPEN' else ' closed'
-            st.markdown('<div class="detail-author">' + ui.icon('detail_author') +
-                        f'<div class="detail-author-copy"><div class="detail-author-name">{ui.e(post["nickname"])} · {ui.e(rating)}</div>'
-                        f'<div class="detail-created">{post["created_at"]:%m월 %d일 %H:%M} 작성</div></div>'
-                        f'<span class="detail-status{closed}">{ui.STATUS_LABELS[post["status"]]}</span></div>', unsafe_allow_html=True)
-            if user['user_id'] != post['user_id']:
-                with st.container(key='detail_follow'):
-                    st.button('팔로잉' if followed else '팔로우', key='detail_follow_button',
-                              on_click=perform_action,
-                              args=(social_service.set_follow, user['user_id'], post['user_id'], not followed))
+            st.html(ui.icon('detail_author'), width=36)
+            with st.container(key='detail_author_copy', gap=None):
+                with st.container(key='detail_author_line', horizontal=True, wrap=False,
+                                  vertical_alignment='bottom'):
+                    st.html(
+                        f'<div class="detail-author-name">{ui.e(post["nickname"])} · {ui.e(rating)}</div>',
+                        width='content',
+                    )
+                    if user['user_id'] != post['user_id']:
+                        with st.container(key='detail_follow', width=48):
+                            st.button('팔로잉' if followed else '팔로우', key='detail_follow_button',
+                                      on_click=perform_action,
+                                      args=(social_service.set_follow, user['user_id'], post['user_id'], not followed))
+                st.html(f'<div class="detail-created">{post["created_at"]:%m월 %d일 %H:%M} 작성</div>')
+            st.html(f'<span class="detail-status{closed}">{ui.STATUS_LABELS[post["status"]]}</span>',
+                    width='content')
         st.markdown(f'<div class="detail-title">{ui.e(post["title"])}</div>'
                     f'<div class="detail-body">{ui.e(post["body"])}</div>', unsafe_allow_html=True)
         info = [('detail_clock', '식사 시간', post['meal_time'].strftime('%m월 %d일 %H:%M')),
