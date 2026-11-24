@@ -44,6 +44,32 @@ def share_post(post_id):
 
 
 DETAIL_CSS = """
+
+/* Compact native-button hit area; the visible HTML retains the existing design. */
+.st-key-detail_profile_avatar{position:relative!important;isolation:isolate;gap:0!important;}
+.st-key-detail_profile_avatar > :is([data-testid="stElementContainer"],[data-testid="stLayoutWrapper"]):has([data-testid="stButton"]){position:absolute!important;inset:0!important;width:100%!important;height:100%!important;z-index:2;margin:0!important;padding:0!important;}
+.st-key-detail_profile_avatar [data-testid="stButton"]{width:100%!important;height:100%!important;}
+.st-key-detail_profile_avatar button{display:block!important;width:100%!important;height:100%!important;min-height:0!important;min-width:0!important;padding:0!important;border:0!important;border-radius:6px!important;background:transparent!important;box-shadow:none!important;cursor:pointer!important;}
+.st-key-detail_profile_avatar button p{opacity:0!important;}
+.st-key-detail_profile_avatar button:focus-visible{outline:2px solid var(--orange)!important;outline-offset:1px;}
+.st-key-detail_profile_avatar button:hover{background:rgba(255,122,61,.06)!important;}
+
+/* Compact native-button hit area; the visible HTML retains the existing design. */
+.st-key-detail_profile_nickname{position:relative!important;isolation:isolate;gap:0!important;}
+.st-key-detail_profile_nickname > :is([data-testid="stElementContainer"],[data-testid="stLayoutWrapper"]):has([data-testid="stButton"]){position:absolute!important;inset:0!important;width:100%!important;height:100%!important;z-index:2;margin:0!important;padding:0!important;}
+.st-key-detail_profile_nickname [data-testid="stButton"]{width:100%!important;height:100%!important;}
+.st-key-detail_profile_nickname button{display:block!important;width:100%!important;height:100%!important;min-height:0!important;min-width:0!important;padding:0!important;border:0!important;border-radius:6px!important;background:transparent!important;box-shadow:none!important;cursor:pointer!important;}
+.st-key-detail_profile_nickname button p{opacity:0!important;}
+.st-key-detail_profile_nickname button:focus-visible{outline:2px solid var(--orange)!important;outline-offset:1px;}
+.st-key-detail_profile_nickname button:hover{background:rgba(255,122,61,.06)!important;}
+
+.st-key-detail_profile_avatar{width:36px!important;height:36px!important;}
+.st-key-detail_profile_nickname{width:fit-content!important;min-width:0;max-width:100%;}
+.st-key-detail_author_line > [data-testid="stLayoutWrapper"]:has(> .st-key-detail_author_identity){width:auto!important;min-width:0;}
+.st-key-detail_author_identity{display:flex!important;gap:0!important;align-items:center!important;min-width:0;overflow:visible!important;}
+.st-key-detail_author_identity > [data-testid="stLayoutWrapper"]:has(> .st-key-detail_profile_nickname){width:auto!important;min-width:0;}
+.st-key-detail_author_identity .detail-author-name{font-size:14px;line-height:18px;height:18px;}
+.detail-author-rating{white-space:nowrap;font-size:14px;line-height:18px;font-weight:700;color:#24201d;margin-left:3px;}
 [data-testid="stMainBlockContainer"]{background:white!important;padding-bottom:136px!important;}
 [data-testid="stMain"]{overflow-anchor:none;}
 .st-key-detail_header{height:42px;min-height:42px;box-sizing:border-box;padding:6px 20px 10px 12px;}
@@ -153,6 +179,13 @@ def perform_action(function, *args):
         st.session_state['_detail_action_error'] = '변경 내용을 저장하지 못했어요. 연결을 확인하고 다시 시도해 주세요.'
 
 
+def open_author_profile(author_id, post_id):
+    params = {'user': int(author_id), 'back_post': int(post_id)}
+    if st.query_params.get('from') == 'search':
+        params['back_from'] = 'search'
+    st.switch_page('pages/4_profile.py', query_params=params)
+
+
 def render_detail_page():
     user = auth.require_login()
     post_id = st.session_state.get('selected_post_id')
@@ -216,14 +249,20 @@ def render_detail_page():
         with st.container(key='detail_author', horizontal=True, wrap=False, vertical_alignment='center'):
             rating = '평가 없음' if post['rating'] is None else f"평점 {post['rating']:.1f}"
             closed = '' if post['status'] == 'OPEN' else ' closed'
-            st.html(ui.user_avatar(post["user_id"], 36), width=36)
+            with st.container(key='detail_profile_avatar', width=36, gap=None):
+                st.html(ui.user_avatar(post["user_id"], 36), width=36)
+                if st.button(f'{post["nickname"]} 프로필 사진 보기', key='detail_author_avatar_open'):
+                    open_author_profile(post['user_id'], post_id)
             with st.container(key='detail_author_copy', gap=None):
                 with st.container(key='detail_author_line', horizontal=True, wrap=False,
                                   vertical_alignment='bottom'):
-                    st.html(
-                        f'<div class="detail-author-name">{ui.e(post["nickname"])} · {ui.e(rating)}</div>',
-                        width='content',
-                    )
+                    with st.container(key='detail_author_identity', horizontal=True, wrap=False,
+                                      vertical_alignment='center', width='content', gap=None):
+                        with st.container(key='detail_profile_nickname', width='content', gap=None):
+                            st.html(f'<div class="detail-author-name">{ui.e(post["nickname"])}</div>', width='content')
+                            if st.button(f'{post["nickname"]} 프로필 보기', key='detail_author_name_open'):
+                                open_author_profile(post['user_id'], post_id)
+                        st.html(f'<span class="detail-author-rating">· {ui.e(rating)}</span>', width='content')
                     if user['user_id'] != post['user_id']:
                         with st.container(key='detail_follow', width=48):
                             st.button('팔로잉' if followed else '팔로우', key='detail_follow_button',
