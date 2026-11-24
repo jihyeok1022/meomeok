@@ -64,15 +64,6 @@ def open_detail(post_id, *, from_search=False):
     st.switch_page('pages/3_post_detail.py', query_params=params)
 
 
-def sign_out():
-    import auth
-    auth.logout()
-    # Clear per-user drafts and temporary interactions before another account logs in.
-    st.session_state.clear()
-    st.query_params.clear()
-    st.switch_page('pages/1_feed.py')
-
-
 def render_home_header(user):
     nickname = f"{e(user['nickname'])}님, " if user.get('nickname') else ''
     st.markdown('<div class="status-bar" aria-hidden="true"><strong>9:41</strong><span>LTE 100%</span></div>', unsafe_allow_html=True)
@@ -214,9 +205,6 @@ def main(*, search_mode=False):
     if search_mode:
         return
 
-    with st.container(key='feed_account'):
-        if st.button('로그아웃', key='feed_logout'):
-            sign_out()
     with st.container(key='fab'):
         if st.button('글쓰기', key='db_write_post'):
             navigate('2_write_post.py')

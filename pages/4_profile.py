@@ -46,6 +46,9 @@ PROFILE_CSS = """
 .st-key-profile_body button[kind='primary'],.st-key-profile_body button[data-testid='stBaseButton-primary'],
 .st-key-profile_body button[data-testid='stBaseButton-primaryFormSubmit']{background:var(--orange)!important;color:white!important;border-color:var(--orange)!important;}
 .st-key-profile_body button:disabled{background:#f1f0ee!important;color:#999!important;}
+.st-key-profile_body .st-key-profile_account button{color:var(--muted);background:transparent;border:0;box-shadow:none;}
+.st-key-profile_body .st-key-profile_account button:hover{background:var(--paper);}
+.st-key-profile_account button p{font-size:12px;}
 .st-key-profile_body [data-testid='stForm']{padding:0;border:0;}
 .st-key-profile_body [data-baseweb='input'],.st-key-profile_body [data-baseweb='textarea']{border-radius:9px;background:white;}
 .st-key-profile_body input,.st-key-profile_body textarea{color:#222;background:white;}
@@ -164,6 +167,15 @@ def render_edit(user_id, profile):
                         st.rerun()
 
 
+def render_logout():
+    with st.container(key="profile_account", horizontal=True, horizontal_alignment="right"):
+        if st.button("로그아웃", key="profile_logout"):
+            auth.logout()
+            st.session_state.clear()
+            st.query_params.clear()
+            st.switch_page("pages/1_feed.py")
+
+
 def render_identity(user_id, profile):
     rating_label = "연동 대기"
     rating_func = getattr(stats_service, "get_user_average_rating", None)
@@ -194,6 +206,7 @@ def render_identity(user_id, profile):
         with b:
             if st.button("팔로잉 보기", key="profile_following_toggle", use_container_width=True):
                 st.session_state["profile_follow_view"] = None if st.session_state.get("profile_follow_view") == "followings" else "followings"
+    render_logout()
     follow_view = st.session_state.get("profile_follow_view")
     if follow_view:
         with st.container(key=f"profile_{follow_view}"):
@@ -314,14 +327,10 @@ def main():
                 ok, reviews = read_data(review_service.get_written_reviews if written else review_service.get_received_reviews, user_id)
                 if ok:
                     render_review_list(reviews, written)
-            if st.button("로그아웃", key="profile_logout", use_container_width=True):
-                auth.logout()
-                st.session_state.clear()
-                st.query_params.clear()
-                st.switch_page("pages/1_feed.py")
         elif ok:
             empty("프로필을 찾을 수 없어요.")
         if not ok or profile is None:
+            render_logout()
             if st.button("다시 불러오기", key="profile_retry", use_container_width=True):
                 st.rerun()
     bottom_nav()

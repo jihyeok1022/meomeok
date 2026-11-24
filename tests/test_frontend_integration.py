@@ -64,13 +64,13 @@ class FrontendIntegrationTests(unittest.TestCase):
         self.assertEqual(self.list_posts.call_args.kwargs['offset'], 0)
         self.assertFalse(app.exception)
 
-    def test_feed_connection_error_has_retry_and_logout(self):
+    def test_feed_connection_error_has_retry(self):
         self.list_posts.side_effect = pymysql.OperationalError(2003, 'private-detail')
         app = self.app()
         self.assertIn('불러오지 못했어요', app.error[0].value)
         self.assertNotIn('private-detail', app.error[0].value)
         self.assertTrue(app.button(key='feed_retry'))
-        self.assertTrue(app.button(key='feed_logout'))
+        self.assertFalse(any(button.label == '로그아웃' for button in app.button))
 
     def test_feed_never_renders_completed_or_canceled_posts(self):
         self.list_posts.return_value = [dict(self.post, status=status, post_id=i)
