@@ -97,6 +97,7 @@ DETAIL_CSS = """
  gap:7px!important;align-items:end!important;justify-content:start;min-width:0;padding-block:0;overflow:visible;}
 .st-key-detail_author_line > [data-testid="stElementContainer"]:has(.detail-author-name){
  min-width:0;width:auto!important;align-self:end!important;margin:0!important;}
+.st-key-detail_author_identity[data-testid="stHorizontalBlock"]{flex-wrap:nowrap!important;}
 .st-key-detail_author :is(.stHtml,[data-testid="stHtml"]){margin:0!important;padding:0!important;}
 .detail-author-name{height:18px;color:#24201d;font-size:14px;line-height:18px;font-weight:700;
  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -136,7 +137,7 @@ DETAIL_CSS = """
 .st-key-detail_content [data-testid="stMarkdownContainer"] p{color:#1f1f1f;}
 .st-key-detail_content [data-testid="stWidgetLabel"] p{font-size:13px;color:#1f1f1f!important;}
 .st-key-detail_content [data-baseweb="textarea"]{background:white!important;border:1px solid #dcdcdc!important;border-radius:10px;}
-.st-key-detail_content textarea{background:white!important;color:#1f1f1f!important;-webkit-text-fill-color:#1f1f1f!important;font-size:13px;padding:12px;}
+.st-key-detail_content textarea{background:white!important;color:#1f1f1f!important;-webkit-text-fill-color:#1f1f1f!important;box-sizing:border-box;font-size:13px;line-height:20px;padding:12px 14px!important;resize:none!important;}
 .st-key-detail_content textarea::placeholder{-webkit-text-fill-color:#a0a0a0!important;}
 .st-key-detail_content [data-testid="stForm"] [data-testid="stTextArea"] [data-testid="InputInstructions"]{display:none!important;}
 .st-key-detail_content [data-testid="stFormSubmitButton"] button{background:#fff1e9!important;color:#ff7a3d!important;border:0;border-radius:8px;margin-top:8px;}
@@ -246,7 +247,7 @@ def render_detail_page():
         participation_ready = False
         st.warning('참여 정보를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.')
     with st.container(key='detail_content'):
-        with st.container(key='detail_author', horizontal=True, wrap=False, vertical_alignment='center'):
+        with st.container(key='detail_author', horizontal=True, vertical_alignment='center'):
             rating = '평가 없음' if post['rating'] is None else f"평점 {post['rating']:.1f}"
             closed = '' if post['status'] == 'OPEN' else ' closed'
             with st.container(key='detail_profile_avatar', width=36, gap=None):
@@ -254,9 +255,9 @@ def render_detail_page():
                 if st.button(f'{post["nickname"]} 프로필 사진 보기', key='detail_author_avatar_open'):
                     open_author_profile(post['user_id'], post_id)
             with st.container(key='detail_author_copy', gap=None):
-                with st.container(key='detail_author_line', horizontal=True, wrap=False,
+                with st.container(key='detail_author_line', horizontal=True,
                                   vertical_alignment='bottom'):
-                    with st.container(key='detail_author_identity', horizontal=True, wrap=False,
+                    with st.container(key='detail_author_identity', horizontal=True,
                                       vertical_alignment='center', width='content', gap=None):
                         with st.container(key='detail_profile_nickname', width='content', gap=None):
                             st.html(f'<div class="detail-author-name">{ui.e(post["nickname"])}</div>', width='content')

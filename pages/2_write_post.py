@@ -131,7 +131,7 @@ WRITE_CSS = """
  color:#1f1f1f!important;-webkit-text-fill-color:#1f1f1f!important;background:white!important;}
 .st-key-write_form input{padding:12px 14px!important;}
 .st-key-write_form input::placeholder,.st-key-write_form textarea::placeholder{-webkit-text-fill-color:#a0a0a0!important;opacity:1;}
-.st-key-write_form textarea{padding:14px!important;min-height:94px!important;resize:vertical;}
+.st-key-write_form textarea{box-sizing:border-box;padding:14px 16px!important;resize:none!important;}
 .st-key-write_form [data-baseweb="select"]{font-size:14px!important;color:#1f1f1f!important;}
 .st-key-write_form [data-baseweb="select"]>div{padding:0 14px;}
 .st-key-write_form [data-baseweb="select"]>div>div:first-child{padding:0;margin:0;}
@@ -207,7 +207,7 @@ def render_write_page():
             st.markdown('<div class="write-title">모집 글 작성</div>', unsafe_allow_html=True)
     with st.container(key='write_form'):
         st.text_input('제목', key='write_title', max_chars=100, placeholder='같이 먹고 싶은 메뉴를 알려주세요')
-        st.text_area('내용 · 구체적인 약속 장소', key='write_body', height=94,
+        st.text_area('내용 · 구체적인 약속 장소', key='write_body', height=112,
                      placeholder='언제, 어디에서 만날지 자유롭게 적어 주세요')
         with st.container(key='write_capacity_field'):
             st.markdown('<div class="write-label">정원 (작성자 포함)</div>', unsafe_allow_html=True)

@@ -11,9 +11,22 @@ from ui_common import CSS, asset, e, user_avatar
 
 
 PAGE_CSS = """
-.apply-heading{background:white;padding:8px 20px 14px;font-size:20px;font-weight:800;}
-.st-key-apply_body{padding:12px 16px 24px!important;}
-.st-key-apply_body [data-testid='stVerticalBlock']{gap:8px!important;}
+.apply-heading{padding:20px 16px 8px;font-size:22px;font-weight:800;}
+[data-testid='stMainBlockContainer'] .st-key-apply_body{padding:0 16px 24px!important;gap:12px!important;}
+[data-testid='stMainBlockContainer'] .st-key-apply_body [data-testid='stVerticalBlock']{gap:8px!important;}
+.st-key-apply_body [data-testid='stRadio']{width:100%!important;}
+.st-key-apply_body [data-testid='stRadio'] [role='radiogroup']{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;width:100%;}
+.st-key-apply_body [data-testid='stRadio'] label{margin:0;min-height:44px;justify-content:center;
+ border-bottom:1px solid #ddd8d4;cursor:pointer;color:var(--muted);}
+.st-key-apply_body [data-testid='stRadio'] label > div:has(> [data-testid='stMarkdownContainer']){justify-content:center;}
+.st-key-apply_body [data-testid='stRadio'] label > div > div:first-child:not([data-testid='stMarkdownContainer']),
+.st-key-apply_body [data-testid='stRadio'] label > div:first-of-type:not(:has([data-testid='stMarkdownContainer'])):not([data-testid='stMarkdownContainer']){
+ display:none;}
+.st-key-apply_body [data-testid='stRadio'] label:has(input:checked){border-bottom:2px solid var(--orange);
+ color:var(--ink);font-weight:700;}
+.st-key-apply_body [data-testid='stRadio'] label:has(input:focus-visible){outline:2px solid #b5461b;outline-offset:-3px;}
+.st-key-apply_body [data-testid='stRadio'] label p{color:inherit;font-size:14px;}
+.st-key-apply_body [data-testid='stRadio'] label:has(input:checked) p{font-weight:700;}
 .st-key-apply_body [data-testid='stHorizontalBlock']{gap:8px!important;}
 .st-key-apply_body [data-testid='stColumn']{min-width:0!important;}
 .st-key-apply_body [class*='st-key-apply_card_']{background:white;border:1px solid var(--line);border-radius:14px;padding:13px!important;}
@@ -25,14 +38,20 @@ PAGE_CSS = """
 .apply-badge.accepted,.apply-badge.completed{background:#e5f4eb;color:#24734a;}
 .apply-badge.open{background:#fff0e7;color:#c65a24;}
 .apply-badge.closed{background:#e8eef7;color:#526d91;}
-.apply-section{font-size:13px;font-weight:750;margin:6px 0 2px;}
+.apply-section{font-size:14px;font-weight:750;margin:5px 0 0;}
+.apply-note{padding:0 3px;color:var(--muted);font-size:12px;line-height:1.6;}
 .apply-empty{background:white;border:1px solid var(--line);border-radius:12px;padding:16px;text-align:center;color:#888;font-size:12px;}
 .apply-person{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;overflow-wrap:anywhere;}
 .st-key-apply_body button{border:1px solid #e7e5e3;border-radius:9px;background:white;color:#333;font-size:13px;min-height:36px;}
 .st-key-apply_body button[kind='primary'],.st-key-apply_body button[data-testid='stBaseButton-primary']{background:var(--orange)!important;color:white!important;border-color:var(--orange)!important;}
 .st-key-apply_body button:disabled{background:#f1f0ee!important;color:#999!important;}
-.st-key-apply_body [data-testid='stTabs'] button{border:0;border-radius:0;background:transparent;}
-.st-key-apply_body [data-testid='stTabs'] [aria-selected='true']{color:var(--orange)!important;}
+.st-key-apply_body [class*='st-key-apply_post_link_'] button{position:relative;justify-content:flex-start;
+ border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;color:var(--ink);
+ padding:8px 18px 0 2px;min-height:38px;font-weight:650;text-align:left;}
+.st-key-apply_body [class*='st-key-apply_post_link_'] button > div{justify-content:flex-start;}
+.st-key-apply_body [class*='st-key-apply_post_link_'] button::after{content:"";position:absolute;right:5px;top:calc(50% + 1px);
+ width:7px;height:7px;border:solid var(--muted);border-width:0 1.5px 1.5px 0;transform:rotate(-45deg);}
+.st-key-apply_body [class*='st-key-apply_post_link_'] button:hover{color:#b5461b;background:#fff9f5;}
 .st-key-bottom_nav .st-key-nav_home button{color:#a0a0a0!important;font-weight:400;}
 .st-key-bottom_nav .st-key-nav_apply button{color:var(--orange)!important;font-weight:700;}
 .st-key-bottom_nav button{position:relative;background-image:none!important;}
@@ -129,14 +148,15 @@ def room_map(user_id):
             if room.get("post_id") is not None and room.get("room_id") is not None}
 
 
+def post_link(post_id, source):
+    if st.button("게시글 보기", key=f"apply_post_link_{source}_{post_id}", width="stretch"):
+        open_post(post_id)
+
+
 def room_button(post_id, rooms, key):
     room_id = rooms.get(post_id) if rooms is not None else None
-    ready = bool(room_id is not None and Path(__file__).with_name("6_chat.py").is_file()
-                 and Path(__file__).with_name("6_chat.py").read_text(encoding="utf-8-sig").strip())
-    if st.button("톡방 가기", key=key, type="primary", disabled=not ready, use_container_width=True):
+    if room_id is not None and st.button("톡방 가기", key=key, type="primary", width="stretch"):
         navigate("6_chat.py", room=room_id)
-    if not ready:
-        st.caption("톡방 연동 준비 중" if rooms is None or room_id is not None else "아직 열린 톡방이 없어요.")
 
 
 def render_applications(user_id, rooms):
@@ -163,27 +183,19 @@ def render_applications(user_id, rooms):
         with st.container(key=f"apply_card_application_{post_id}"):
             html(f'<div class="apply-top"><div class="apply-title">{e(row["title"])}</div>{status_badge(status, True)}</div>'
                  f'<div class="apply-meta">{e(date_label(row.get("meal_time")))} · {e(row.get("region") or "")} · {e(POST_LABELS.get(post_status, "상태 확인 필요"))}</div>')
-            a, b = st.columns(2)
-            with a:
-                if st.button("게시글 보기", key=f"apply_detail_{post_id}", use_container_width=True):
-                    open_post(post_id)
-            with b:
-                if status == "PENDING" and post_status in ("OPEN", "CLOSED"):
-                    if st.button("신청 취소", key=f"apply_cancel_{post_id}", disabled=not callable(cancel), use_container_width=True):
-                        perform(user_id, cancel, (post_id, user_id), "신청을 취소했어요.")
-                elif status == "ACCEPTED" and post_status == "COMPLETED":
-                    if st.button("리뷰 쓰기", key=f"apply_review_{post_id}", type="primary", use_container_width=True):
-                        navigate("4_profile.py", review_post=post_id)
-                elif status == "ACCEPTED" and post_status in ("OPEN", "CLOSED"):
-                    room_button(post_id, rooms, f"apply_room_{post_id}")
+            post_link(post_id, "application")
+            if status == "PENDING" and post_status in ("OPEN", "CLOSED") and callable(cancel):
+                if st.button("신청 취소", key=f"apply_cancel_{post_id}", width="stretch"):
+                    perform(user_id, cancel, (post_id, user_id), "신청을 취소했어요.")
+            elif status == "ACCEPTED" and post_status == "COMPLETED":
+                if st.button("리뷰 쓰기", key=f"apply_review_{post_id}", type="primary", width="stretch"):
+                    navigate("4_profile.py", review_post=post_id)
+            elif status == "ACCEPTED" and post_status in ("OPEN", "CLOSED"):
+                room_button(post_id, rooms, f"apply_room_{post_id}")
 
 
-def render_applicants(user_id, post):
+def render_applicants(user_id, post, func):
     post_id = post["post_id"]
-    func = getattr(participation_service, "get_post_applications", None)
-    if not callable(func):
-        st.caption("신청자 목록 및 승인·거절 기능은 연동 준비 중이에요.")
-        return
     ok, rows = read_list(func, post_id, user_id)
     if not ok:
         return
@@ -199,16 +211,20 @@ def render_applicants(user_id, post):
         html(f'<div class="apply-top"><div class="apply-person">{user_avatar(applicant, 28)}{e(row["nickname"])}</div>'
              f'{status_badge(status, True)}</div>')
         if status == "PENDING" and post["status"] == "OPEN":
-            a, b = st.columns(2)
-            with a:
-                full = post["current_count"] >= post["capacity"]
-                if st.button("승인", key=f"apply_accept_{post_id}_{applicant}", type="primary", disabled=full or not callable(accept), use_container_width=True):
-                    perform(user_id, accept, (post_id, user_id, applicant), "참여 신청을 승인했어요.")
-            with b:
-                if st.button("거절", key=f"apply_reject_{post_id}_{applicant}", disabled=not callable(reject), use_container_width=True):
-                    perform(user_id, reject, (post_id, user_id, applicant), "참여 신청을 거절했어요.")
-            if not callable(accept) or not callable(reject):
-                st.caption("승인·거절 연동 준비 중")
+            actions = []
+            if callable(accept):
+                actions.append(("승인", "accept", accept, "참여 신청을 승인했어요."))
+            if callable(reject):
+                actions.append(("거절", "reject", reject, "참여 신청을 거절했어요."))
+            if not actions:
+                continue
+            full = post["current_count"] >= post["capacity"]
+            for col, (label, key, action, message) in zip(st.columns(len(actions)), actions):
+                with col:
+                    if st.button(label, key=f"apply_{key}_{post_id}_{applicant}", width="stretch",
+                                 type="primary" if key == "accept" else "secondary",
+                                 disabled=key == "accept" and full):
+                        perform(user_id, action, (post_id, user_id, applicant), message)
 
 
 def render_hosted(user_id, rooms):
@@ -216,12 +232,13 @@ def render_hosted(user_id, rooms):
     ok, posts = read_list(user_service.get_user_posts, user_id)
     if not ok:
         return
-    html(f'<div class="apply-section">내가 모집한 모임 {len(posts)}개</div>')
+    html(f'<div class="apply-section">모집한 모임 {len(posts)}개</div>')
     if not posts:
         empty("아직 모집한 모임이 없어요.")
         if st.button("모집 글 작성", key="apply_create_post", use_container_width=True):
             navigate("2_write_post.py")
         return
+    applicants = getattr(participation_service, "get_post_applications", None)
     complete = getattr(participation_service, "complete_meal", None)
     for post in posts:
         post_id = post["post_id"]
@@ -229,33 +246,43 @@ def render_hosted(user_id, rooms):
         with st.container(key=f"apply_card_host_{post_id}"):
             html(f'<div class="apply-top"><div class="apply-title">{e(post["title"])}</div>{status_badge(status)}</div>'
                  f'<div class="apply-meta">{e(date_label(post.get("meal_time")))} · {e(post.get("region") or "")}<br>'
-                 f'참여 인원 {e(post["current_count"])}/{e(post["capacity"])}명 (작성자 포함)</div>')
-            if st.button("게시글 보기", key=f"apply_host_detail_{post_id}", use_container_width=True):
-                open_post(post_id)
-            render_applicants(user_id, post)
+                 f'참여 {e(post["current_count"])}/{e(post["capacity"])}명 · 작성자 포함</div>')
+            post_link(post_id, "host")
+            if callable(applicants):
+                render_applicants(user_id, post, applicants)
             if status == "CLOSED":
                 room_button(post_id, rooms, f"apply_host_room_{post_id}")
-                confirm = st.checkbox("실제로 식사를 마쳤어요", key=f"apply_confirm_complete_{user_id}_{post_id}", disabled=not callable(complete))
-                if st.button("식사 완료 처리", key=f"apply_complete_{post_id}", disabled=not callable(complete) or not confirm, use_container_width=True):
-                    perform(user_id, complete, (post_id, user_id), "식사 완료로 변경했어요.")
-                if not callable(complete):
-                    st.caption("식사 완료 처리 연동 준비 중")
+                if callable(complete):
+                    confirm = st.checkbox("실제로 식사를 마쳤어요", key=f"apply_confirm_complete_{user_id}_{post_id}")
+                    if st.button("식사 완료 처리", key=f"apply_complete_{post_id}", disabled=not confirm, width="stretch"):
+                        perform(user_id, complete, (post_id, user_id), "식사 완료로 변경했어요.")
             elif status == "COMPLETED":
-                if st.button("리뷰 쓰기", key=f"apply_host_review_{post_id}", type="primary", use_container_width=True):
+                if st.button("리뷰 쓰기", key=f"apply_host_review_{post_id}", type="primary", width="stretch"):
                     navigate("4_profile.py", review_post=post_id)
+
+    pending = []
+    if not all(callable(getattr(participation_service, name, None))
+               for name in ("get_post_applications", "accept_application", "reject_application")):
+        pending.append("신청자 관리")
+    if any(post["status"] == "CLOSED" for post in posts):
+        if not callable(getattr(chat_service, "get_chat_rooms", None)):
+            pending.append("톡방")
+        if not callable(complete):
+            pending.append("식사 완료")
+    if pending:
+        html(f'<div class="apply-note">{e("·".join(pending))} 기능은 준비 중이에요.</div>')
 
 
 def main():
     st.set_page_config(page_title="머먹 · 내 신청", page_icon="🍚", layout="centered")
     user_id = auth.require_login()["user_id"]
     html(f"<style>{CSS}{PAGE_CSS}</style>")
-    html('<div class="status-bar" aria-hidden="true"><strong>9:41</strong><span>LTE 100%</span></div>'
-         '<div class="apply-heading">내 신청 · 참여</div>')
+    html('<div class="apply-heading">내 신청 · 참여</div>')
     with st.container(key="apply_body"):
         if message := st.session_state.pop(f"apply_flash_{user_id}", None):
             st.success(message)
         tab = st.radio("참여 메뉴", ["신청한 모임", "내가 모집한 모임"], horizontal=True,
-                       label_visibility="collapsed", key=f"apply_tab_{user_id}")
+                       label_visibility="collapsed", width="stretch", key=f"apply_tab_{user_id}")
         rooms = room_map(user_id)
         if tab == "신청한 모임":
             render_applications(user_id, rooms)

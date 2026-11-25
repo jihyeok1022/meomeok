@@ -5,7 +5,7 @@ import pymysql
 import streamlit as st
 
 import auth
-from services import user_service, review_service, stats_service, chat_service, social_service
+from services import user_service, review_service, stats_service, social_service
 from ui_common import CSS, STATUS_LABELS, asset, e, user_avatar
 
 
@@ -36,14 +36,14 @@ PROFILE_CSS = """
 .st-key-profile_body [data-testid='stVerticalBlockBorderWrapper'],
 .st-key-profile_body [data-testid='stLayoutWrapper']> [data-testid='stVerticalBlock'][data-border='true']{border-radius:14px;}
 .st-key-profile_identity,.st-key-profile_edit,.st-key-profile_review_form,
-.st-key-profile_followers,.st-key-profile_followings,[class*='st-key-profile_post_'],
-[class*='st-key-profile_room_']{background:white;border:1px solid var(--line);border-radius:14px;padding:14px!important;}
+.st-key-profile_followers,.st-key-profile_followings,[class*='st-key-profile_post_']{background:white;border:1px solid var(--line);border-radius:14px;padding:14px!important;}
 .profile-person{display:flex;align-items:center;gap:11px;min-width:0;}
+.profile-person .user-avatar{flex-shrink:0;}
 .profile-name{font-size:18px;font-weight:800;overflow-wrap:anywhere;}
 .profile-muted{font-size:12px;color:var(--muted);overflow-wrap:anywhere;}
 .profile-bio{font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere;margin:5px 0;}
 .profile-tastes{padding:10px 12px;border-radius:10px;background:var(--paper);font-size:12px;color:#666;overflow-wrap:anywhere;white-space:pre-wrap;}
-.profile-stat{text-align:center;padding:8px 0;}
+.profile-stat{text-align:center;padding:4px 0;}
 .profile-stat strong{font-size:19px;display:block;line-height:25px;}
 .profile-stat small{font-size:11px;color:var(--muted);}
 .profile-section{display:flex;align-items:center;justify-content:space-between;margin-top:12px;font-size:15px;font-weight:800;}
@@ -62,9 +62,24 @@ PROFILE_CSS = """
 .st-key-profile_body button[kind='primary'],.st-key-profile_body button[data-testid='stBaseButton-primary'],
 .st-key-profile_body button[data-testid='stBaseButton-primaryFormSubmit']{background:var(--orange)!important;color:white!important;border-color:var(--orange)!important;}
 .st-key-profile_body button:disabled{background:#f1f0ee!important;color:#999!important;}
-.st-key-profile_body .st-key-profile_account button{color:var(--muted);background:transparent;border:0;box-shadow:none;}
-.st-key-profile_body .st-key-profile_account button:hover{background:var(--paper);}
-.st-key-profile_account button p{font-size:12px;}
+.st-key-profile_body .st-key-profile_identity_header [data-testid='stHorizontalBlock']{flex-wrap:nowrap!important;}
+.st-key-profile_body .st-key-profile_identity_header [data-testid='stColumn']:first-child{flex:1 1 0!important;width:auto!important;}
+.st-key-profile_body .st-key-profile_identity_header [data-testid='stColumn']:last-child{flex:0 0 auto!important;width:auto!important;}
+.st-key-profile_body .st-key-profile_account button{color:#b42318;background:transparent;border:0;box-shadow:none;
+ padding:4px 8px;white-space:nowrap;}
+.st-key-profile_body .st-key-profile_account button:hover{background:#fef0ef;}
+.st-key-profile_account button p{font-size:12px;font-weight:650;color:inherit;}
+.st-key-profile_body .st-key-profile_identity_header button{padding:4px 8px;white-space:nowrap;}
+.st-key-profile_identity_header button p{font-size:12px;font-weight:650;}
+.st-key-profile_identity .st-key-profile_account button{border:1px solid #f1d5d3;}
+.st-key-profile_body [class*='st-key-profile_stat_'] button{min-height:54px;padding:4px 0;
+ border:0;border-radius:8px;background:transparent;color:var(--muted);}
+.st-key-profile_body [class*='st-key-profile_stat_'] button p{font-size:11px;line-height:19px;}
+.st-key-profile_body [class*='st-key-profile_stat_'] button strong{display:block;font-size:19px;
+ line-height:25px;color:var(--ink);}
+.st-key-profile_body [class*='st-key-profile_stat_'] button:hover{background:#fff1e9;color:#a33c17;}
+.st-key-profile_body [class*='st-key-profile_stat_'] button:focus-visible{outline:2px solid #b5461b;}
+.profile-follow-heading{font-size:20px;font-weight:800;}
 .st-key-profile_body [data-testid='stForm']{padding:0;border:0;}
 .st-key-profile_body [data-baseweb='input'],.st-key-profile_body [data-baseweb='textarea']{border-radius:9px;background:white;}
 .st-key-profile_body input,.st-key-profile_body textarea{color:#222;background:white;}
@@ -148,8 +163,8 @@ def render_follow_list(user_id, followers):
             html(f'<div class="profile-review-top public-follow-person">{user_avatar(row["user_id"], 30)}'
                  f'<div><div class="profile-review-name">{e(row["nickname"])}</div>'
                  f'<div class="profile-muted">{e(row.get("neighborhood") or "")}</div></div></div>')
-            if st.button(f'{row["nickname"]} 프로필 보기', key=f"public_follow_open_{suffix}_{target}"):
-                navigate("4_profile.py", user=target, back_list=suffix)
+            st.button(f'{row["nickname"]} 프로필 보기', key=f"public_follow_open_{suffix}_{target}",
+                      on_click=navigate, args=("4_profile.py",), kwargs={"user": target, "back_list": suffix})
 
 
 def render_edit(user_id, profile):
@@ -192,13 +207,24 @@ def render_edit(user_id, profile):
                         st.rerun()
 
 
-def render_logout():
-    with st.container(key="profile_account", horizontal=True, horizontal_alignment="right"):
-        if st.button("로그아웃", key="profile_logout"):
+def render_logout(*, full_width=False):
+    with st.container(key="profile_account", horizontal_alignment="right"):
+        if st.button("로그아웃", key="profile_logout", width="stretch" if full_width else "content"):
             auth.logout()
             st.session_state.clear()
             st.query_params.clear()
             st.switch_page("pages/1_feed.py")
+
+
+def set_follow_view(view=None):
+    if view is None:
+        del st.query_params["follow"]
+    else:
+        st.query_params["follow"] = view
+
+
+def toggle_profile_edit():
+    st.session_state["profile_edit_open"] = not st.session_state.get("profile_edit_open", False)
 
 
 def render_identity(user_id, profile, viewer_id=None):
@@ -217,56 +243,51 @@ def render_identity(user_id, profile, viewer_id=None):
                             f'<div class="profile-muted">{e(profile["gachon_email"])}</div>')
         else:
             private_info = '</div>'
-        html(f'<div class="profile-person">{user_avatar(user_id, 58)}<div>'
-             f'<div class="profile-name">{e(profile["nickname"])}</div>'
-             f'<div class="profile-muted">{e(profile.get("neighborhood") or "")}{private_info}</div></div>')
+        person = (f'<div class="profile-person">{user_avatar(user_id, 58)}<div>'
+                  f'<div class="profile-name">{e(profile["nickname"])}</div>'
+                  f'<div class="profile-muted">{e(profile.get("neighborhood") or "")}{private_info}</div></div>')
+        if own:
+            with st.container(key="profile_identity_header"):
+                identity_col, edit_col = st.columns([4, 1], vertical_alignment="top")
+                with identity_col:
+                    html(person)
+                with edit_col:
+                    label = "수정 닫기" if st.session_state.get("profile_edit_open") else "프로필 수정"
+                    st.button(label, key="profile_edit_toggle", on_click=toggle_profile_edit)
+        else:
+            html(person)
         html(f'<div class="profile-bio">{e(profile.get("bio") or "아직 자기소개가 없어요.")}</div>')
         html(f'<div class="profile-tastes">음식 취향 · {e(profile.get("food_preference") or "미등록")}<br>'
              f'선호 음식 · {e(profile.get("favorite_food") or "미등록")}</div>')
-        for col, (value, label) in zip(st.columns(3), [(rating_label,"평균 평점"), (profile["follower_count"],"팔로워"), (profile["following_count"],"팔로잉")]):
+        stats = (
+            (rating_label, "평균 평점", None),
+            (profile["follower_count"], "팔로워", "followers"),
+            (profile["following_count"], "팔로잉", "followings"),
+        )
+        for col, (value, label, view) in zip(st.columns(3), stats):
             with col:
-                html(f'<div class="profile-stat"><strong>{e(value)}</strong><small>{e(label)}</small></div>')
+                if own and view:
+                    st.button(f"**{value}** {label}", key=f"profile_stat_{view}", width="stretch",
+                              on_click=set_follow_view, args=(view,))
+                else:
+                    html(f'<div class="profile-stat"><strong>{e(value)}</strong><small>{e(label)}</small></div>')
         if not own:
             render_public_follow(viewer_id, user_id)
             return
-        if st.button("프로필 수정" if not st.session_state.get("profile_edit_open") else "수정 닫기", key="profile_edit_toggle", use_container_width=True):
-            st.session_state["profile_edit_open"] = not st.session_state.get("profile_edit_open", False)
-            st.rerun()
-        a, b = st.columns(2)
-        with a:
-            if st.button("팔로워 보기", key="profile_follower_toggle", use_container_width=True):
-                st.session_state["profile_follow_view"] = None if st.session_state.get("profile_follow_view") == "followers" else "followers"
-        with b:
-            if st.button("팔로잉 보기", key="profile_following_toggle", use_container_width=True):
-                st.session_state["profile_follow_view"] = None if st.session_state.get("profile_follow_view") == "followings" else "followings"
-    render_logout()
-    follow_view = st.session_state.get("profile_follow_view")
-    if follow_view:
-        with st.container(key=f"profile_{follow_view}"):
-            section("팔로워" if follow_view == "followers" else "팔로잉")
-            render_follow_list(user_id, follow_view == "followers")
+        render_logout(full_width=True)
     if st.session_state.get("profile_edit_open"):
         render_edit(user_id, profile)
 
 
-def render_rooms(user_id):
-    section("참여 중인 톡방")
-    # PROPOSED contract: see README_FRONTEND.md; no database access in the page.
-    func = getattr(chat_service, "get_chat_rooms", None)
-    if not callable(func):
-        empty("톡방 기능은 연동 준비 중이에요.")
-        return
-    ok, rooms = read_data(func, user_id)
-    if not ok:
-        return
-    if not rooms:
-        empty("참여 중인 톡방이 없어요.")
-    for room in rooms:
-        with st.container(key=f'profile_room_{room["room_id"]}'):
-            html(f'<div class="profile-post-title">{e(room["title"])}</div>'
-                 f'<div class="profile-muted">{e(room.get("last_message") or "아직 메시지가 없어요.")}</div>')
-            if st.button("톡방 가기", key=f'profile_room_open_{room["room_id"]}', use_container_width=True):
-                navigate("6_chat.py", room=room["room_id"])
+def render_follow_view(user_id, view):
+    followers = view == "followers"
+    title = "팔로워" if followers else "팔로잉"
+    with st.container(key="profile_body"):
+        with st.container(key="public_profile_back", width="content"):
+            st.button("뒤로", key="profile_follow_return", on_click=set_follow_view)
+        html(f'<div class="profile-follow-heading">{title}</div>')
+        with st.container(key=f"profile_{view}"):
+            render_follow_list(user_id, followers)
 
 
 def render_posts(user_id):
@@ -368,14 +389,14 @@ def return_from_profile():
         navigate("3_post_detail.py", **params)
     source = st.query_params.get("back_list")
     if source in ("followers", "followings"):
-        st.session_state["profile_follow_view"] = source
+        navigate("4_profile.py", follow=source)
+        return
     navigate("4_profile.py")
 
 
 def render_profile_back():
     with st.container(key="public_profile_back", width="content"):
-        if st.button("뒤로", key="public_profile_return"):
-            return_from_profile()
+        st.button("뒤로", key="public_profile_return", on_click=return_from_profile)
 
 
 def render_public_profile(viewer_id, target_id):
@@ -405,7 +426,8 @@ def main():
     user_id = user["user_id"]
     html(f"<style>{CSS}{PROFILE_CSS}</style>")
     target_id = positive_query("user")
-    view_token = (int(user_id), target_id, st.query_params.get("back_post"))
+    follow_view = st.query_params.get("follow")
+    view_token = (int(user_id), target_id, st.query_params.get("back_post"), follow_view)
     if st.session_state.get("_public_profile_view") != view_token:
         st.session_state["_public_profile_view"] = view_token
         st.html("""<script>
@@ -418,6 +440,9 @@ def main():
         render_public_profile(int(user_id), target_id)
         bottom_nav()
         return
+    if follow_view in ("followers", "followings"):
+        render_follow_view(user_id, follow_view)
+        return
     if positive_query("back_post"):
         render_profile_back()
     html('<div class="status-bar" aria-hidden="true"><strong>9:41</strong><span>LTE 100%</span></div>'
@@ -428,7 +453,6 @@ def main():
         ok, profile = read_data(user_service.get_profile, user_id)
         if ok and profile is not None:
             render_identity(user_id, profile)
-            render_rooms(user_id)
             render_posts(user_id)
             section("리뷰")
             # A link from participation can request the review-writing tab.

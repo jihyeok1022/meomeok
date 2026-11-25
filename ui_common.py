@@ -88,24 +88,24 @@ html,body,[data-testid="stApp"],[data-testid="stAppViewContainer"]{
 .st-key-categories{height:62px;min-height:62px;box-sizing:border-box;background:white;
  padding:12px 8px 16px 20px!important;}
 .st-key-categories [data-testid="stPills"]{overflow:hidden;}
-.st-key-categories [role="radiogroup"]{display:flex;align-items:center;gap:8px!important;flex-wrap:nowrap!important;
- overflow-x:auto;scrollbar-width:none;max-width:100%;padding:0;}
+.st-key-categories [role="radiogroup"]{display:flex;align-items:center;gap:5px!important;flex-wrap:nowrap!important;
+ overflow-x:auto;scrollbar-width:none;max-width:100%;padding:2px;}
 .st-key-categories [role="radiogroup"]::-webkit-scrollbar{display:none;}
-.st-key-categories button{height:34px!important;min-height:34px!important;min-width:54px;
- flex-shrink:0;border:1px solid var(--line)!important;border-radius:999px;background:white!important;
- color:var(--muted)!important;padding:7px 14px!important;white-space:nowrap;box-shadow:none!important;}
-.st-key-categories button p{font-size:13px;line-height:18px;font-weight:500;}
-.st-key-categories button[data-testid="stBaseButton-pillsActive"]{
- min-width:52px;height:32px!important;min-height:32px!important;border:0!important;
- background:var(--orange)!important;color:white!important;}
-.st-key-categories button[data-testid="stBaseButton-pillsActive"] p{font-weight:700;}
+.st-key-categories button{height:34px!important;min-height:34px!important;min-width:40px;
+ flex-shrink:0;border:1px solid #eaded7!important;border-radius:999px;background:#faf6f3!important;
+ color:#5d514b!important;padding:5px 8px!important;white-space:nowrap;box-shadow:none!important;}
+.st-key-categories button p{font-size:12px;line-height:18px;font-weight:500;color:inherit!important;}
+.st-key-categories button:is([data-testid="stBaseButton-pillsActive"],[aria-pressed="true"],[aria-checked="true"]){
+ border-color:#b5461b!important;background:#b5461b!important;color:white!important;}
+.st-key-categories button:is([aria-pressed="true"],[aria-checked="true"],[data-testid="stBaseButton-pillsActive"]) p{font-weight:700;}
+.st-key-categories button:focus-visible{outline:2px solid #b5461b!important;outline-offset:1px;}
 [data-testid="stMainBlockContainer"]:has(.st-key-search_controls):not(:has(.st-key-section)){background:#fff!important;}
 .st-key-search_controls{position:relative;background:#fff;padding:16px 20px 14px;box-sizing:border-box;}
 .st-key-search_controls [data-testid="stForm"]{padding:0;border:0;}
 [data-testid="stMainBlockContainer"] .st-key-search_controls [data-testid="stForm"] > [data-testid="stVerticalBlock"]{gap:12px!important;}
 .st-key-search_back_slot{position:absolute;top:16px;left:15px;width:34px!important;height:44px;z-index:1;}
 .st-key-search_bar[data-testid="stHorizontalBlock"]{box-sizing:border-box;width:calc(100% - 40px)!important;
- height:44px;min-width:0;margin-left:40px;background:#f5f3f1;border:1px solid #eae5e0;border-radius:12px;
+ height:44px;min-width:0;flex-wrap:nowrap!important;margin-left:40px;background:#f5f3f1;border:1px solid #eae5e0;border-radius:12px;
  overflow:visible;padding:0 3px 0 11px;}
 .st-key-search_bar:focus-within{border-color:#e79068;box-shadow:0 0 0 2px #fff0e8;}
 .st-key-search_bar [data-testid="stTextInputRootElement"],.st-key-search_bar [data-baseweb="input"],

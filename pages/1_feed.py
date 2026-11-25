@@ -106,7 +106,7 @@ def main(*, search_mode=False):
                 if st.button('뒤로', key='search_back', icon=':material/arrow_back:'):
                     st.switch_page('pages/1_feed.py')
             with st.form('search_form', border=False):
-                with st.container(key='search_bar', horizontal=True, wrap=False, gap=None,
+                with st.container(key='search_bar', horizontal=True, gap=None,
                                   vertical_alignment='center'):
                     query = st.text_input('제목·본문 검색', value=search_values.get('query', ''),
                                           key='db_search_query', placeholder='제목이나 본문으로 검색',
