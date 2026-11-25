@@ -218,3 +218,37 @@ st.write(f"{me['nickname']}님 안녕하세요")
 - `get_written_reviews` 키: `review_id, post_id, post_title, reviewee_id, reviewee_nickname, rating, content, created_at`
 - `get_reviewable_mates` 키: `post_id, post_title, meal_time, mate_id, mate_nickname`
 - 평균 별점(매너 점수)은 4번 `stats_service.get_user_average_rating()`에서 제공합니다.
+
+## 3번 함수 목록 (박준혁 · 참여 신청·승인·마감·톡방·메시지)
+
+공통 오류 규칙: 입력 오류·중복·상태 충돌 `ValueError` · 권한 없음 `PermissionError` · 대상 없음 `LookupError` · DB 장애는 pymysql 예외 그대로.
+실패를 `False`나 빈 값으로 돌려주지 않습니다. 신청·취소·거절·식사 완료는 `Post` 행을 `SELECT ... FOR UPDATE`로 잠근 뒤 처리 시점의 상태를 다시 검사합니다.
+
+### services/participation_service.py
+
+| 함수 | 입력값 | 설명 | 반환값 |
+|---|---|---|---|
+| `get_members(post_id)` | 글 번호 | 확정 멤버 (작성자 먼저, 이후 신청순) | `list[dict]` 키: `user_id, nickname, is_host` |
+| `get_application_status(post_id, user_id)` | 글 번호, 회원 번호 | 내 신청 상태 | `'PENDING'·'ACCEPTED'·'REJECTED'·'CANCELED'` 또는 `None` |
+| `apply_to_post(post_id, user_id)` | 글 번호, 신청자 | 참여 신청 (OPEN·정원 미만일 때). 본인 글 금지, 중복 금지, 취소했던 신청은 PENDING으로 재신청 | `{"post_id", "user_id", "status": "PENDING"}` |
+| `cancel_application(post_id, user_id)` | 글 번호, 신청자 | 대기 중 신청 취소 (이미 취소면 그대로 성공) | `{"post_id", "user_id", "status": "CANCELED"}` |
+| `get_my_applications(user_id)` | 회원 번호 | 내 신청 내역 (취소·거절 포함, 최신순) | `list[dict]` 키: `post_id, title, status, post_status, meal_time, region, applied_at` |
+| `get_post_applications(post_id, host_id)` | 글 번호, 방장 | 내 글의 신청자 (대기 먼저, 신청순). 방장만 | `list[dict]` 키: `user_id, nickname, status, applied_at` |
+| `accept_application(post_id, host_id, applicant_id)` | 글 번호, 방장, 신청자 | 승인. 프로시저 `accept_participation` 사용 → 정원이 차면 마감·톡방 생성·멤버 추가·남은 대기 거절까지 한 트랜잭션 | `{"post_id", "user_id", "status": "ACCEPTED", "post_status", "room_id"}` (톡방 없으면 `room_id=None`) |
+| `reject_application(post_id, host_id, applicant_id)` | 글 번호, 방장, 신청자 | 대기 중 신청 거절 (OPEN 글만) | `{"post_id", "user_id", "status": "REJECTED"}` |
+| `complete_meal(post_id, host_id)` | 글 번호, 방장 | 식사 완료 CLOSED → COMPLETED (방장만, 식사 시각이 지난 뒤). 완료 후 리뷰 작성 가능 | `{"post_id", "status": "COMPLETED"}` |
+
+- 확정 인원 = 작성자 1명 + ACCEPTED 수. 신청(PENDING)만으로는 인원·톡방 멤버가 늘지 않습니다.
+- 시연 중 식사 시각 전에 완료 처리가 필요하면 `participation_service.REQUIRE_MEAL_TIME_PASSED = False`로 바꿉니다.
+
+### services/chat_service.py
+
+| 함수 | 입력값 | 설명 | 반환값 |
+|---|---|---|---|
+| `get_chat_rooms(user_id)` | 회원 번호 | 내가 멤버인 톡방 (메시지 없는 방 포함, 마지막 메시지 최신순) | `list[dict]` 키: `room_id, post_id, title, post_status, member_count, last_message, last_message_at` |
+| `get_chat_members(room_id, user_id)` | 톡방 번호, 요청자 | 톡방 멤버 (방장 먼저). 멤버만 조회 가능 | `list[dict]` 키: `user_id, nickname, is_host` |
+| `get_messages(room_id, user_id, limit=100)` | 톡방 번호, 요청자, 개수(1~100) | 최근 limit개를 오래된 순서로. 멤버만 조회 가능 | `list[dict]` 키: `message_id, user_id, nickname, content, created_at` |
+| `send_message(room_id, user_id, content)` | 톡방 번호, 보낸 사람, 내용 | 앞뒤 공백 제거 후 1~2,000자. 멤버만, 취소된 모임 방은 불가 | 저장된 메시지 `dict` (위와 같은 키) |
+
+- 톡방과 멤버는 승인 프로시저만 만듭니다. `chat_service`는 방을 새로 만들지 않습니다.
+- 모든 조회·전송에서 `ChatMember`로 멤버인지 확인하고, `Message`의 `(room_id, user_id)` 복합 FK가 DB에서도 한 번 더 막습니다.
