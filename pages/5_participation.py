@@ -6,7 +6,7 @@ from pathlib import Path
 import streamlit as st
 
 import auth
-from services import user_service, participation_service, chat_service
+from services import user_service, participation_service, chat_service, review_service
 from ui_common import CSS, asset, e, user_avatar
 
 
@@ -159,6 +159,43 @@ def room_button(post_id, rooms, key):
         navigate("6_chat.py", room=room_id)
 
 
+def get_review_status(user_id):
+    """Use the same outstanding-review query as the profile page."""
+    ok, mates = read_list(review_service.get_reviewable_mates, user_id)
+    if not ok:
+        return None, None
+    try:
+        remaining = {str(row["post_id"]) for row in mates}
+    except (KeyError, TypeError):
+        st.error("리뷰 상태를 불러오지 못했어요.")
+        return None, None
+    ok, written = read_list(review_service.get_written_reviews, user_id)
+    if not ok:
+        return remaining, None
+    try:
+        completed = {str(row["post_id"]) for row in written}
+    except (KeyError, TypeError):
+        st.error("리뷰 상태를 불러오지 못했어요.")
+        return remaining, None
+    return remaining, completed
+
+
+def review_status_button(post_id, key, review_status):
+    remaining, written = review_status
+    post_key = str(post_id)
+    if remaining is not None and post_key in remaining:
+        if st.button("리뷰 쓰기", key=key, type="primary", width="stretch"):
+            navigate("4_profile.py", review_post=post_id)
+    else:
+        if remaining is None or written is None:
+            label = "리뷰 상태 확인 불가"
+        elif post_key in written:
+            label = "리뷰 작성 완료"
+        else:
+            label = "리뷰 대상 없음"
+        st.button(label, key=key, disabled=True, width="stretch")
+
+
 def render_applications(user_id, rooms):
     # Proposed list contract. cancel_application already appears in README_API.md.
     func = getattr(participation_service, "get_my_applications", None)
@@ -176,6 +213,9 @@ def render_applications(user_id, rooms):
             navigate("1_feed.py")
         return
     cancel = getattr(participation_service, "cancel_application", None)
+    review_status = get_review_status(user_id) if any(
+        row["status"] == "ACCEPTED" and row["post_status"] == "COMPLETED" for row in rows
+    ) else (None, None)
     for row in rows:
         post_id = row["post_id"]
         status = row["status"]
@@ -188,8 +228,7 @@ def render_applications(user_id, rooms):
                 if st.button("신청 취소", key=f"apply_cancel_{post_id}", width="stretch"):
                     perform(user_id, cancel, (post_id, user_id), "신청을 취소했어요.")
             elif status == "ACCEPTED" and post_status == "COMPLETED":
-                if st.button("리뷰 쓰기", key=f"apply_review_{post_id}", type="primary", width="stretch"):
-                    navigate("4_profile.py", review_post=post_id)
+                review_status_button(post_id, f"apply_review_{post_id}", review_status)
             elif status == "ACCEPTED" and post_status in ("OPEN", "CLOSED"):
                 room_button(post_id, rooms, f"apply_room_{post_id}")
 
@@ -240,6 +279,9 @@ def render_hosted(user_id, rooms):
         return
     applicants = getattr(participation_service, "get_post_applications", None)
     complete = getattr(participation_service, "complete_meal", None)
+    review_status = get_review_status(user_id) if any(
+        post["status"] == "COMPLETED" for post in posts
+    ) else (None, None)
     for post in posts:
         post_id = post["post_id"]
         status = post["status"]
@@ -257,8 +299,7 @@ def render_hosted(user_id, rooms):
                     if st.button("식사 완료 처리", key=f"apply_complete_{post_id}", disabled=not confirm, width="stretch"):
                         perform(user_id, complete, (post_id, user_id), "식사 완료로 변경했어요.")
             elif status == "COMPLETED":
-                if st.button("리뷰 쓰기", key=f"apply_host_review_{post_id}", type="primary", width="stretch"):
-                    navigate("4_profile.py", review_post=post_id)
+                review_status_button(post_id, f"apply_host_review_{post_id}", review_status)
 
     pending = []
     if not all(callable(getattr(participation_service, name, None))
